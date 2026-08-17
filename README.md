@@ -1,5 +1,10 @@
 # classroom-sota-training
 
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Landing%20Page-62e6c9?style=flat-square)](https://8b-is.github.io/classroom-sota-training/)
+[![Published Model](https://img.shields.io/badge/Hugging%20Face-quantal--classroom--1.6-ffd15c?style=flat-square)](https://huggingface.co/PeetPedro/quantal-classroom-1.6)
+[![HF Space Explorer](https://img.shields.io/badge/HF%20Space-CogitoErgoSumma-b48bff?style=flat-square)](https://huggingface.co/spaces/PeetPedro/cogitoergosumma-corpus)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
+
 **The Council of Elders (Vének Tanácsa)** — a Waldorf-style classroom training
 pipeline. A thinking-enabled pupil model sits in the middle of the room — the
 *golden youth* — and is taught, philosophized with, and capability-built by a

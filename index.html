@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom SOTA Training — The Council of Elders (Vének Tanácsa)</title>
+  <meta name="description" content="Waldorf-style SOTA classroom training pipeline: a thinking-enabled pupil (deepseek-pro) learns from 8+1 open-weights teacher models via geometric-mean softmax consensus.">
+  <meta name="keywords" content="classroom training, council of elders, venek tanacsa, deepseek-pro, waldorf training, Qwen3-8B, Qwen3-14B, geometric-mean softmax consensus, knowledge distillation, SOTA LLM training">
+  <meta name="author" content="Peter Lodri / 8b-is">
+  <meta name="theme-color" content="#04060c">
+  <link rel="canonical" href="https://8b-is.github.io/classroom-sota-training/">
+
+  <!-- OpenGraph / Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://8b-is.github.io/classroom-sota-training/">
+  <meta property="og:title" content="Classroom SOTA Training — The Council of Elders">
+  <meta property="og:description" content="Waldorf-style classroom training: a thinking-enabled pupil learns from 8+1 open-weights teacher models via geometric-mean softmax consensus.">
+  <meta property="og:image" content="https://vaked.dev/assets/og-vaked.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Classroom SOTA Training — The Council of Elders">
+  <meta name="twitter:description" content="Waldorf-style classroom training pipeline. Pupil in the center, 8+1 teachers in the room.">
+  <meta name="twitter:image" content="https://vaked.dev/assets/og-vaked.jpg">
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Classroom SOTA Training",
+    "description": "Vének Tanácsa (Council of Elders) — Waldorf-style classroom training pipeline.",
+    "codeRepository": "https://github.com/8b-is/classroom-sota-training",
+    "programmingLanguage": "Python",
+    "author": {
+      "@type": "Organization",
+      "name": "8b-is",
+      "url": "https://github.com/8b-is"
+    }
+  }
+  </script>
+
+  <!-- Google Fonts & KaTeX -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #04060c;
+      --bg-surface: #0a0e1a;
+      --panel: #0e1526;
+      --panel-hover: #141f36;
+      --border: rgba(98, 230, 201, 0.22);
+      --border-glow: rgba(98, 230, 201, 0.45);
+      --cyan: #62e6c9;
+      --cyan-glow: rgba(98, 230, 201, 0.25);
+      --gold: #ffcf5c;
+      --gold-glow: rgba(255, 207, 92, 0.25);
+      --purple: #b48bff;
+      --blue: #58a6ff;
+      --text: #e2e8f0;
+      --text-muted: #8e9db2;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Space Grotesk', var(--font-sans);
+      --font-mono: 'Fira Code', ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Background Ambient Canvas */
+    #orbit-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(1200px, 92vw);
+      margin-inline: auto;
+    }
+
+    /* Header Nav */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(4, 6, 12, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+    }
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.04em;
+    }
+    .brand-pill {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-family: var(--font-mono);
+      transition: color 0.2s ease;
+    }
+    .nav-link:hover { color: var(--cyan); }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(98, 230, 201, 0.12);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      background: var(--cyan);
+      color: #04060c;
+      box-shadow: 0 0 15px var(--cyan-glow);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 50px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      background: rgba(98, 230, 201, 0.08);
+      border: 1px solid rgba(98, 230, 201, 0.3);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--cyan);
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #ffffff 40%, #8e9db2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--cyan) 20%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 780px;
+      margin: 0 auto 36px;
+      line-height: 1.65;
+    }
+    .hero-cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      background: var(--cyan);
+      color: #04060c;
+      font-weight: 700;
+      font-size: 14.5px;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      box-shadow: 0 4px 20px var(--cyan-glow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(98, 230, 201, 0.4);
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14.5px;
+      font-family: var(--font-mono);
+      text-decoration: none;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--cyan);
+    }
+
+    /* Council Interactive Orbit Stage */
+    .visualizer-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      margin-bottom: 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .card-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .tag.cyan { color: var(--cyan); border-color: rgba(98, 230, 201, 0.3); background: rgba(98, 230, 201, 0.08); }
+    .tag.gold { color: var(--gold); border-color: rgba(255, 207, 92, 0.3); background: rgba(255, 207, 92, 0.08); }
+
+    .orbit-stage {
+      height: 420px;
+      width: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: radial-gradient(circle at center, rgba(18, 28, 48, 0.6) 0%, rgba(8, 12, 20, 0.95) 75%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Waldorf Concept Cards */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+    .feat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .feat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--cyan);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--cyan-glow);
+    }
+    .feat-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+    .feat-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+    .feat-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* Formulation */
+    .math-card {
+      background: linear-gradient(135deg, rgba(14, 21, 38, 0.95) 0%, rgba(10, 14, 26, 0.95) 100%);
+      border: 1px solid rgba(98, 230, 201, 0.3);
+      border-radius: 16px;
+      padding: 36px;
+      margin-bottom: 60px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    }
+    .math-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+    .math-formula {
+      background: rgba(4, 6, 12, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      color: var(--gold);
+      overflow-x: auto;
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    /* Benchmarks Table */
+    .table-wrap {
+      overflow-x: auto;
+      margin-bottom: 60px;
+    }
+    table.benchmark-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    table.benchmark-table th {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 14px 18px;
+      text-align: left;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border);
+    }
+    table.benchmark-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text);
+    }
+    table.benchmark-table tr:hover td {
+      background: rgba(98, 230, 201, 0.04);
+    }
+    .highlight-cell {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    /* CLI Code Box */
+    .cli-card {
+      background: #060912;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 80px;
+      font-family: var(--font-mono);
+    }
+    .cli-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .code-block {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+      color: #38bdf8;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .code-block span.comment { color: #64748b; }
+    .code-block span.cmd { color: #62e6c9; font-weight: 600; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0 80px;
+      text-align: center;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    footer a { color: var(--cyan); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <canvas id="orbit-canvas"></canvas>
+
+  <header>
+    <div class="container nav-inner">
+      <a href="#" class="brand">
+        <span class="brand-pill"></span>
+        CLASSROOM SOTA
+      </a>
+      <nav class="nav-links">
+        <a href="#concept" class="nav-link">Waldorf Concept</a>
+        <a href="#council" class="nav-link">Council of Elders</a>
+        <a href="#results" class="nav-link">Empirical Results</a>
+        <a href="https://huggingface.co/spaces/PeetPedro/cogitoergosumma-corpus" target="_blank" rel="noopener" class="nav-btn">HF Space Explorer ↗</a>
+        <a href="https://github.com/8b-is/classroom-sota-training" target="_blank" rel="noopener" class="nav-btn">GitHub Repo ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge">⚡ Vének Tanácsa · Council of Elders (8 + 1) SOTA Training</div>
+      <h1 class="hero-title">
+        The Golden Youth Learns from<br>
+        <span class="highlight">The Council of Elders</span>
+      </h1>
+      <p class="hero-desc">
+        A Waldorf-style classroom training pipeline. A thinking-enabled pupil (deepseek-pro) sits in the center of the room, taught and capability-built by a council of <b>8 + 1 open-weights teacher models</b> via <b>geometric-mean softmax consensus</b>.
+      </p>
+      <div class="hero-cta-group">
+        <a href="https://github.com/8b-is/classroom-sota-training" target="_blank" rel="noopener" class="btn-primary">
+          <span>GitHub Repository</span>
+          <span>→</span>
+        </a>
+        <a href="https://huggingface.co/PeetPedro/quantal-classroom-1.6" target="_blank" rel="noopener" class="btn-secondary">
+          <span>Published Model: quantal-classroom-1.6</span>
+          <span>✦</span>
+        </a>
+        <a href="https://huggingface.co/spaces/PeetPedro/cogitoergosumma-corpus" target="_blank" rel="noopener" class="btn-secondary">
+          <span>Corpus Q&A Space</span>
+          <span>🧠</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Interactive Council Visualizer -->
+    <section class="visualizer-card" id="council">
+      <div class="card-header">
+        <div>
+          <div class="card-title">The Council of Elders: 8 + 1 Teacher Orbital Topology</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Thinking Pupil (deepseek-pro) in the center, receiving geometric-mean consensus deliberation from the faculty</div>
+        </div>
+        <div class="card-tags">
+          <span class="tag cyan">Pupil: deepseek-pro (Thinking)</span>
+          <span class="tag gold">Faculty: Qwen3-8B / 14B / 32B Logits</span>
+          <span class="tag">Guard: Qwen3Guard-8B</span>
+          <span class="tag">+1: Flash Family Peer</span>
+        </div>
+      </div>
+      <div class="orbit-stage" id="stage-box">
+        <canvas id="interactive-ring" style="width:100%;height:100%;"></canvas>
+      </div>
+    </section>
+
+    <!-- 3 Core Waldorf Principles -->
+    <section class="grid-3" id="concept">
+      <div class="feat-card">
+        <div class="feat-icon">📖</div>
+        <div class="feat-title">1. They Teach (Knowledge)</div>
+        <div class="feat-desc">
+          Knowledge passed on in each teacher's own modality and domain strength. Multi-faculty KL divergence aligns probability distributions across verified token spaces.
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🏛️</div>
+        <div class="feat-title">2. They Philosophize (Meaning)</div>
+        <div class="feat-desc">
+          The elders discuss <i>meaning</i>, not just raw token likelihoods. Deliberation filters out single-teacher blind spots and preserves deep reasoning chains.
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⚡</div>
+        <div class="feat-title">3. Capability Building (Understanding)</div>
+        <div class="feat-desc">
+          The pupil learns through understanding, not mimicry. It builds its own sovereign internal world model, free from blind imitation.
+        </div>
+      </div>
+    </section>
+
+    <!-- Geometric Mean Softmax Consensus -->
+    <section class="math-card">
+      <div class="math-title">✦ Geometric-Mean Softmax Consensus Formulation</div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;">
+        The deliberation reaches the pupil not through majority dictation, but through a balanced, shared geometric-mean consensus across the council:
+      </p>
+      <div class="math-formula">
+        $$P_{\text{consensus}}(v) = \frac{\prod_{k=1}^K \left(P_k(v)\right)^{w_k}}{\sum_{v'} \prod_{k=1}^K \left(P_k(v')\right)^{w_k}} = \text{Softmax}\left(\sum_{k=1}^K w_k \cdot z_k(v)\right)$$
+      </div>
+      <div style="font-size:12.5px;color:var(--text-muted);text-align:center;font-family:var(--font-mono);">
+        With multi-faculty KL loss $\mathcal{L}_{\text{multi-faculty}} = \sum_{k} \beta_k D_{\text{KL}}(P_{\text{consensus}} \parallel P_{\text{pupil}})$ and $\beta$-ramp epoch scheduling.
+      </div>
+    </section>
+
+    <!-- Empirical Results -->
+    <section class="table-wrap" id="results">
+      <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="font-family:var(--font-display);font-size:20px;font-weight:700;color:#ffffff;">Empirical Training Results (Validation CE)</h2>
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--cyan);">H200 Multi-GPU Training Gate</span>
+      </div>
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Training Version</th>
+            <th>Teacher Configuration</th>
+            <th>Best Validation Cross-Entropy</th>
+            <th>Status / Checkpoint</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>v2 Single-Teacher Baseline</td>
+            <td>Qwen3-14B (Single)</td>
+            <td>1.8166</td>
+            <td>Baseline</td>
+          </tr>
+          <tr>
+            <td>Harness Gate (Old Ckpt, New Stack)</td>
+            <td>—</td>
+            <td>2.1369</td>
+            <td>Fixed-Point Gate</td>
+          </tr>
+          <tr style="background:rgba(98, 230, 201, 0.08);">
+            <td class="highlight-cell">✦ Classroom (Council of Elders)</td>
+            <td class="highlight-cell">Qwen3-8B + Qwen3-14B Geometric-Mean</td>
+            <td class="highlight-cell">1.6120 (-0.2046 CE)</td>
+            <td class="highlight-cell">Published SOTA Model</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Quickstart CLI -->
+    <section class="cli-card">
+      <div class="cli-header">
+        <span>⚡ Quickstart Classroom Training Pipeline</span>
+        <span>Python 3.11+ / PyTorch / Hugging Face Jobs</span>
+      </div>
+      <div class="code-block">
+<span class="comment"># 1. Clone sovereign repository</span>
+<span class="cmd">git clone</span> https://github.com/8b-is/classroom-sota-training.git
+<span class="cmd">cd</span> classroom-sota-training
+
+<span class="comment"># 2. Build multi-teacher cached logits</span>
+<span class="cmd">python3</span> scripts/teacher_logits.py --models Qwen/Qwen3-8B Qwen/Qwen3-14B
+
+<span class="comment"># 3. Launch Waldorf Classroom Training (Vének Tanácsa)</span>
+<span class="cmd">python3</span> scripts/train_quantal_classroom.py \
+  --pupil deepseek-ai/DeepSeek-V4-Pro \
+  --teachers Qwen/Qwen3-8B Qwen/Qwen3-14B \
+  --consensus geometric_mean \
+  --beta_ramp 0.1:0.85
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Classroom SOTA Training · The Council of Elders (Vének Tanácsa) · 8b-is / Peter Lodri</p>
+      <p style="margin-top:6px;">
+        <a href="https://github.com/8b-is/classroom-sota-training">GitHub Repository</a> · 
+        <a href="https://huggingface.co/PeetPedro/quantal-classroom-1.6">quantal-classroom-1.6</a> · 
+        <a href="https://huggingface.co/spaces/PeetPedro/cogitoergosumma-corpus">CogitoErgoSumma HF Space</a> · 
+        <a href="https://vaked.dev">Constellation Apex</a>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Council Orbit Canvas Animation
+    (function() {
+      const canvas = document.getElementById('interactive-ring');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let width, height;
+
+      function resize() {
+        width = canvas.width = canvas.parentElement.clientWidth;
+        height = canvas.height = canvas.parentElement.clientHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      let angle = 0;
+      const teachers = [
+        { name: "Qwen3-8B (Faculty)", role: "Reasoning", color: "#62e6c9", radius: 110, speed: 0.012, offset: 0 },
+        { name: "Qwen3-14B (Faculty)", role: "Synthesis", color: "#38bdf8", radius: 110, speed: 0.012, offset: Math.PI },
+        { name: "Qwen3-32B (Slot 8)", role: "Deep Logic", color: "#ffcf5c", radius: 165, speed: -0.007, offset: 0 },
+        { name: "Qwen3Guard-8B (Slot 7)", role: "Safety Invariant", color: "#f43f5e", radius: 165, speed: -0.007, offset: Math.PI * 0.5 },
+        { name: "Llama-3.3-70B (Seminar)", role: "Perspective", color: "#b48bff", radius: 165, speed: -0.007, offset: Math.PI },
+        { name: "Mistral-Large (Seminar)", role: "Structure", color: "#f59e0b", radius: 165, speed: -0.007, offset: Math.PI * 1.5 },
+        { name: "Qwen3-4B (+1 Flash)", role: "Speed/Pacing", color: "#10b981", radius: 140, speed: 0.009, offset: Math.PI * 0.75 }
+      ];
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        const cx = width / 2;
+        const cy = height / 2;
+
+        // Orbit Guide Rings
+        ctx.strokeStyle = "rgba(98, 230, 201, 0.15)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 110, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 207, 92, 0.12)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 165, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Center Pupil Node (deepseek-pro with thinking)
+        ctx.shadowColor = "#62e6c9";
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = "#62e6c9";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = "#04060c";
+        ctx.font = "bold 11px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PUPIL", cx, cy - 4);
+        ctx.font = "8px 'Fira Code', monospace";
+        ctx.fillText("deepseek-pro", cx, cy + 8);
+
+        // Draw Teachers Orbiting
+        teachers.forEach(t => {
+          const a = angle * (t.speed / 0.01) + t.offset;
+          const x = cx + Math.cos(a) * t.radius;
+          const y = cy + Math.sin(a) * t.radius;
+
+          // Deliberation beam to pupil
+          ctx.strokeStyle = t.color + "33";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+
+          // Teacher node
+          ctx.shadowColor = t.color;
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = t.color;
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "9.5px 'Fira Code', monospace";
+          ctx.fillText(t.name, x, y - 14);
+        });
+
+        angle += 0.01;
+        requestAnimationFrame(draw);
+      }
+      draw();
+    })();
+  </script>
+</body>
+</html>
