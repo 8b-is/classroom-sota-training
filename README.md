@@ -1,71 +1,75 @@
 # classroom-sota-training
 
-**A "Vének Tanácsa"** — Waldorf-módszertanú classroom training pipeline a
-pupil-modell (quantal/ternary student) képesség-fejlesztéséhez.
+**The Council of Elders (Vének Tanácsa)** — a Waldorf-style classroom training
+pipeline. A thinking-enabled pupil model sits in the middle of the room — the
+*golden youth* — and is taught, philosophized with, and capability-built by a
+council of **8 + 1 open-weights teacher models**.
 
-## A koncepció
+## The concept
 
-Egy 1.7B méretű, thresholded-ternary pupil-modell a terem közepén ül — mint
-egy **aranyifjú**: tudásszomjas, nyitott, alakítható. Körülötte **8-9 nagyobb
-tanár-modell** ("a vének tanácsa") ül, akik nem egyetlen cél-függvényt
-nyomnak rá, hanem **Waldorf-módszertannal** tanítanak:
+The pupil is not force-fed a single objective function. The elders teach the
+Waldorf way:
 
-- **tanítanak** — tudást adnak át a saját modalitásukban
-- **filozofálnak** — megvitatják a jelentést, nem csak a token-valószínűséget
-- **képességet fejlesztenek** — a pupil nem utánzással, hanem értő
-  elsajátítással tanul: a tanárok konszenzusától független, saját belső
-  modelljét építi
+- **they teach** — knowledge passed on in each teacher's own modality
+- **they philosophize** — they discuss *meaning*, not just token likelihoods
+- **they build capability** — the pupil learns through understanding, not
+  mimicry: it builds its own internal model, independent of any single
+  teacher's consensus
 
-A tanácskozás egy **geometric-mean softmax konszenzuson** keresztül érkezik a
-pupilhez — a vének "egyhangú döntése" nem a többség lediktálása, hanem a
-közös, kiegyensúlyozott irány.
+The deliberation reaches the pupil through a **geometric-mean softmax
+consensus** — the elders' "unanimous decision" is not the majority dictating,
+but a shared, balanced direction.
 
-## Architektúra
+## Architecture
 
 ```
              ┌──────────────────────────────────────────┐
-             │          A VÉNEK TANÁCSA (8-9 tanár)      │
-             │  Qwen3-8B · Qwen3-14B · + tanár-bővítés   │
-             │  (minden tanár saját logits-szavazat)     │
+             │    THE COUNCIL OF ELDERS (8 + 1 teachers) │
+             │  open-weights models, each with its own   │
+             │  logits vote (Qwen3-8B/14B + extended)    │
              └───────────────┬──────────────────────────┘
-                             │ geometric-mean softmax konszenzus
+                             │ geometric-mean softmax consensus
                              ▼
              ┌──────────────────────────────────────────┐
-             │           PUPIL (aranyifjú)               │
-             │  Qwen3-1.7B thresholded-ternary (quantal) │
-             │  deployed-forward: ternary matmul,         │
-             │  tanul közben, nem utánzásra épít         │
+             │         PUPIL (the golden youth)          │
+             │  latest deepseek-pro (thinking-enabled)   │
+             │  learns in the room, not by imitation     │
              └──────────────────────────────────────────┘
 ```
 
-- **Tanárok**: `teacher_logits.py` cache-eli a faculty logits-okat
-  (Qwen3-8B + Qwen3-14B bf16, tokenizer byte-azonos a pupiléval).
-- **Tanítási cél**: `train_quantal_classroom.py` — multi-faculty KL,
-  geometric-mean softmax konszenzus, β-ramp epoch-séma.
-- **Támogatás**: `train_quantal_distill.py` (single-teacher), `build_corpus_v2.py`
-  (korpusz), `quantal_golden_logits.py` / `quantal_compare_logits.py` (verifikáció).
+- **Teachers**: `teacher_logits.py` caches faculty logits
+  (Qwen3-8B + Qwen3-14B bf16, tokenizer byte-identical to the pupil's).
+- **Training objective**: `train_quantal_classroom.py` — multi-faculty KL,
+  geometric-mean softmax consensus, β-ramp epoch schedule.
+- **Support**: `train_quantal_distill.py` (single-teacher), `build_corpus_v2.py`
+  (corpus), `quantal_golden_logits.py` / `quantal_compare_logits.py` (verification).
 - **HF Jobs overlay**: `hf-overlay/` — `classroom_train.py` (HF Jobs wrapper),
-  `harness_eval.py` (harness-eval a Dipankar-féle fix-pont teszthez).
+  `harness_eval.py` (harness eval for the Dipankar fixed-point test).
 
-## Eredmények
+## Results
 
-| Verzió | Tanítás | Best val CE |
-|--------|---------|-------------|
+| Version | Training | Best val CE |
+|---------|----------|-------------|
 | v2 single-teacher (H200) | Qwen3-14B | 1.8166 |
-| **classroom (vének tanácsa)** | Qwen3-8B + Qwen3-14B | **1.6120** |
-| harness-gate (régi ckpt, új stack) | — | 2.1369 (a javulás TRÉNING, nem harness) |
+| **classroom (council of elders)** | Qwen3-8B + Qwen3-14B | **1.6120** |
+| harness gate (old ckpt, new stack) | — | 2.1369 (the gain is TRAINING, not harness) |
 
-Publikált modell: [PeetPedro/quantal-classroom-1.6](https://huggingface.co/PeetPedro/quantal-classroom-1.6)
+Published model: [PeetPedro/quantal-classroom-1.6](https://huggingface.co/PeetPedro/quantal-classroom-1.6)
 
-## Konvenciók
+## The plan (next)
 
-- A pipeline a **8b-is org alatt** fejlődik — a saját transformers forkunk
-  (8b-is/transformers) a sovereign home base.
-- A pupil quantal-stackje: `MLX-QUANT` (thresholded ternary, deployed-forward).
-- Minden új tanár bekerülése = a vének tanácsának bővítése — a konszenzus
-  módszer skálázható, a tanárok cserélhetők anélkül, hogy a pupil újratanulná
-  a régieket.
+See [docs/PLAN.md](docs/PLAN.md) — the pupil becomes the latest **deepseek-pro
+with thinking**, taught by **8 + 1 open-weights teachers** (the +1 being the
+"flash" version of the pupil's own family).
 
-## Licenc
+## Conventions
 
-Apache-2.0 (a tanár-alapmodellek licencét külön ellenőrizni; Qwen3 Apache-2.0).
+- The pipeline lives under the **8b-is org** — our own transformers fork
+  (8b-is/transformers) is the sovereign home base.
+- Every new teacher added = the council grows; the consensus method scales,
+  and teachers can be swapped without the pupil retraining the old ones.
+
+## License
+
+Apache-2.0 (verify each teacher base-model's license separately; Qwen3 is
+Apache-2.0).
