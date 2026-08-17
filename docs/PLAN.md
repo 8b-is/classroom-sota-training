@@ -48,11 +48,34 @@ variant — cheap, fast, and always present.
    to prove gains are training, not eval drift.
 5. **Eval + publish** — best-val checkpoint → model card + dataset → HF.
 
+## Resolved questions (research done 2026-08-17)
+
+- **deepseek-pro licensing — MIT, distillation allowed ✓**. "deepseek-pro" is
+  **DeepSeek-V4-Pro** (1.6T/49B MoE, MIT, not gated). The V4-Flash is its
+  "flash" sibling (284B/13B, MIT). No distillation clause, no branding/MAU
+  strings — the only duty is keeping the copyright notice.
+- **Real blocker is the tokenizer, not the license**: DeepSeek BPE vocab
+  129,280 vs Qwen3 151,936 vs Qwen3.5 248,320. If the pupil is V4-Pro, the
+  Qwen-family teachers are NOT byte-identical → token-level multi-faculty KL
+  won't compose directly. Options: (1) sequence/embedding-level cross-tokenizer
+  KL, (2) V4-Pro-generated thinking trajectories → SFT on the pupil (the
+  proven community pattern), (3) all-DeepSeek teacher council.
+- **Slot 7 (security/guardrail) → `Qwen/Qwen3Guard-Gen-8B`** — Apache-2.0,
+  not gated, generative guardrail, **Qwen3 tokenizer (byte-identical to a
+  Qwen pupil)**. Backups: nvidia Llama-3.1-Nemotron-Safety-Guard-8B-v3 (but
+  Llama tokenizer), allenai/wildguard (older). Avoid Llama-Guard-4 (manual
+  gated, "Built with Llama" + MAU clause) and ShieldGemma (gated).
+- **Slot 8 (philosophy/dialogue) → `Qwen/Qwen3-32B`** — Apache-2.0, not
+  gated, Qwen3 tokenizer, 131K YaRN, strong creative/multi-turn dialogue.
+  For stronger reasoning: `Qwen3-235B-A22B` (same tokenizer).
+- **+1 (pupil's flash voice)**: a small Qwen3 of the pupil's own family
+  (e.g. Qwen3-4B) — Apache-2.0.
+
 ## Open questions
 
-- Which two TBD teachers fill slots 7-8? (security + dialogue specialists)
-- Does deepseek-pro licensing allow distillation? (verify before caching
-  logits — if not, swap for an Apache-2.0 thinking model with identical
-  tokenizer family.)
+- **Council composition vs tokenizer**: if the pupil is V4-Pro (DeepSeek
+  tokenizer), do we (a) keep Qwen teachers + cross-tokenizer KL / trajectory
+  SFT, or (b) rebalance the council to DeepSeek-family teachers? — needs a
+  decision before milestone 1.
 - Where does the pupil run? (GCP Agent Platform per lib-2 research, or HF
   Jobs H200 — TBD once teachers are cached.)
