@@ -74,7 +74,22 @@ with thinking**, taught by **8 + 1 open-weights teachers** (the +1 being the
 - Every new teacher added = the council grows; the consensus method scales,
   and teachers can be swapped without the pupil retraining the old ones.
 
+---
+
+## 🌐 The Sovereign Constellation
+
+- **Axiom Quant (Monograph & Proofs):** [`https://axiomquant.org`](https://axiomquant.org)
+- **DeepSiper Enthea (Evaluation Harness):** [`https://github.com/8b-is/deepsiper-enthea`](https://github.com/8b-is/deepsiper-enthea)
+- **Honest-IRC / EtherHive (PQC Messaging):** [`https://github.com/peterlodri-sec/etherhive`](https://github.com/peterlodri-sec/etherhive) · [`https://etherhive.vaked.dev`](https://etherhive.vaked.dev)
+- **Lovetta Lane Constellation Portal:** [`https://vaked.dev`](https://vaked.dev)
+- **Personal Hub:** [`https://peterl.dev`](https://peterl.dev)
+- **Bluesky:** [`@0xp3t3rl.bsky.social`](https://bsky.app/profile/0xp3t3rl.bsky.social)
+
+---
+
 ## License
 
-Apache-2.0 (verify each teacher base-model's license separately; Qwen3 is
-Apache-2.0).
+Apache-2.0 (verify each teacher base-model's license separately; Qwen3 is Apache-2.0).
+
+Genesis Seal: `7c242080f5f821e5eaf563fe2208d60632c451687baf65f4fe8e4a0d226e3ecf` · `WE. {-1, 0, +1}. <3`
+
