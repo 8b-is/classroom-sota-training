@@ -39,12 +39,27 @@ TEACHERS = {
     "deepseek-pro": ("deepseek-v4-pro", True),
     "deepseek-r2": ("deepseek-r2", True),
     "deepseek-r1": ("deepseek-r1-0528", True),
+    # the expanded council's new dimensions (r: new open families, code, vision)
+    "glm-5.3": ("glm-5.3", True),
+    "kimi-k3": ("kimi-k3", True),
+    "kimi-k2.7-code": ("kimi-k2.7-code", True),
+    "minimax-m3": ("minimax-m3", True),
+    "qwen3-vl-235b": ("qwen3-vl-235b-a22b", True),
 }
 
 # the council in deliberation order — the geometric-mean softmax consensus
 # is taken over exactly these eight elders.
 COUNCIL = ["qwen3.8-max", "qwen3.7-max", "qwen3-235b", "qwen3-30b",
            "qwen3-coder", "deepseek-pro", "deepseek-r2", "deepseek-r1"]
+
+# the expanded council — the original eight plus the five new dimensions:
+# three new open families (Zhipu, Moonshot, MiniMax), a code specialist,
+# and the first vision elder. The consensus hears disagreements it never
+# heard and sees what it never saw.
+EXTENDED = ["qwen3.8-max", "qwen3.7-max", "qwen3-235b", "qwen3-30b",
+            "qwen3-coder", "deepseek-pro", "deepseek-r2", "deepseek-r1",
+            "glm-5.3", "kimi-k3", "kimi-k2.7-code", "minimax-m3",
+            "qwen3-vl-235b"]
 
 
 def teacher_call(model: str, prompt: str, max_tokens: int, temperature: float) -> dict:
@@ -86,6 +101,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="CometAPI teacher inference for the classroom")
     ap.add_argument("--teacher", choices=TEACHERS, default="qwen3.8-max")
     ap.add_argument("--council", action="store_true", help="run all eight elders in deliberation order")
+    ap.add_argument("--extended", action="store_true", help="run the expanded thirteen-voice council")
     ap.add_argument("--prompt", default=None)
     ap.add_argument("--file", default=None, help="read the prompt from a file")
     ap.add_argument("-n", "--count", type=int, default=1, help="how many teacher calls per elder")
@@ -99,7 +115,7 @@ def main() -> int:
     else:
         prompt = args.prompt or "What is the geometric-mean softmax consensus, and why does a council of elders prefer it over a majority vote?"
 
-    elders = COUNCIL if args.council else [args.teacher]
+    elders = EXTENDED if args.extended else (COUNCIL if args.council else [args.teacher])
     print(f"cometapi council — {len(elders)} elders · {', '.join(elders)}")
     total_in, total_out, total_s = 0, 0, 0.0
     for elder in elders:
