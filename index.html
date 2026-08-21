@@ -1315,7 +1315,7 @@
 
 
 
-<!-- the zen garden — pocoo-style raking, in the classroom's colors -->
+<!-- the real garden — raked sand, stones, the mantra forming as the rakes move -->
 <script>
 (function(){
   var c=document.getElementById('bg-canvas'); if(!c) return;
@@ -1324,57 +1324,85 @@
   var s=987654321;
   function rnd(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }
   var W,H,DPR;
-  function rs(){ if(!c||!ctx) return; DPR=Math.min(2,window.devicePixelRatio||1); W=innerWidth||800; H=innerHeight||600; c.width=W*DPR; c.height=H*DPR; c.style.width=W+'px'; c.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  function rs(){ if(!c||!ctx) return; DPR=Math.min(2,window.devicePixelRatio||1); W=innerWidth||800; H=innerHeight||600; c.width=W*DPR; c.height=H*DPR; c.style.width=W+'px'; c.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); buildGuide(); }
   rs(); window.addEventListener('resize',rs,{passive:true});
 
-  // the Boolean alphabet + the trits — the golden youth's own glyphs
-  var GLYPHS=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','-','+'];
-  var glyphs=[];
-  for(var i=0;i<26;i++){ glyphs.push({x:rnd()*W,y:rnd()*H,sz:12+rnd()*28,a:0.02+rnd()*0.05,vx:(rnd()-0.5)*0.12,vy:(rnd()-0.5)*0.09,ch:GLYPHS[(rnd()*GLYPHS.length)|0]}); }
+  // the sand: warm, raked flat
+  var SAND_TOP = H*0.42;
+  var stones=[];
+  for(var i=0;i<7;i++){ stones.push({x:W*(0.1+rnd()*0.8), y:SAND_TOP+20+rnd()*(H-SAND_TOP-50), rx:10+rnd()*26, ry:6+rnd()*12, a:rnd()*3.14, sh:60+rnd()*120}); }
 
-  // the rake — zen-garden strokes that wander and branch
+  // the mantra, pre-rendered: its glyphs become the rakes' guide
+  var guide=[];
+  function buildGuide(){
+    var off=document.createElement('canvas'); off.width=W; off.height=H;
+    var octx=off.getContext('2d'); octx.clearRect(0,0,W,H);
+    octx.textAlign='center'; octx.textBaseline='middle';
+    var cx=W/2, cy=H*0.5;
+    var base=Math.max(20, Math.min(64, W/14));
+    octx.font='600 '+base+'px Georgia,serif';
+    octx.fillStyle='#000';
+    octx.fillText('OM MANI PADME HUNG', cx, cy-6);
+    octx.font='500 '+(base*0.32)+'px monospace';
+    octx.fillText('0 1 2 3 4 5 6 7 8 9 A B C D E F · − 0 +', cx, cy+base*0.5+8);
+    var img=octx.getImageData(0,0,W,H).data, px=octx.getImageData(0,0,W,H).data;
+    guide=[];
+    for(var y=0;y<H;y+=3){ for(var x=0;x<W;x+=3){ var i=(y*W+x)*4; if(px[i+3]>128){ guide.push({x:x,y:y}); } } }
+  }
+
+  // enlightenment: the golden radiance at the heart of the garden
+  var enlighten={x:W/2,y:H*0.44,phase:0};
+
+  // the rakes — they walk the mantra's glyphs, leaving the words in the sand
   var tips=[];
-  function spawn(n){ for(var i=0;i<n;i++){ tips.push({x:W*(0.5+(rnd()-0.5)*0.9),y:H*(0.72+rnd()*0.4),a:-Math.PI/2+(rnd()-0.5)*1.6,life:0,max:130+rnd()*170}); } }
-  spawn(26);
+  function spawnRake(){
+    if(guide.length===0) return;
+    var g=guide[(rnd()*guide.length)|0];
+    tips.push({x:g.x+(rnd()-0.5)*6,y:g.y+(rnd()-0.5)*6,
+               tx:g.x,ty:g.y,life:0,max:60+rnd()*90,
+               drift:(rnd()-0.5)*0.9});
+  }
+  for(var i=0;i<40;i++) spawnRake();
 
-  // the golden youth — nodes glowing where the rake passes
-  var nodes=[];
-
+  // the sand's memory: mantras settle and re-form, forever
   function frame(){
-    ctx.fillStyle='rgba(7,6,13,0.10)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(7,6,13,0.07)'; ctx.fillRect(0,0,W,H);
 
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    for(var i=0;i<glyphs.length;i++){ var g=glyphs[i];
-      g.x+=g.vx; g.y+=g.vy;
-      if(g.x<-50)g.x=W+50; if(g.x>W+50)g.x=-50; if(g.y<-50)g.y=H+50; if(g.y>H+50)g.y=-50;
-      ctx.fillStyle='rgba(255,209,92,'+g.a.toFixed(3)+')';
-      ctx.font='500 '+g.sz+'px Georgia,"Times New Roman",serif';
-      ctx.fillText(g.ch,g.x,g.y);
+    // the sand plane
+    var sand=ctx.createLinearGradient(0,SAND_TOP,0,H);
+    sand.addColorStop(0,'rgba(60,48,28,0.10)');
+    sand.addColorStop(1,'rgba(30,24,14,0.22)');
+    ctx.fillStyle=sand; ctx.fillRect(0,SAND_TOP,W,H-SAND_TOP);
+
+    // the stones
+    for(var i=0;i<stones.length;i++){ var st=stones[i];
+      ctx.save(); ctx.translate(st.x,st.y); ctx.rotate(st.a);
+      var g2=ctx.createRadialGradient(0,-st.ry*0.4,0,0,0,st.rx*1.6);
+      g2.addColorStop(0,'rgba(90,90,120,'+(st.sh/255).toFixed(3)+')');
+      g2.addColorStop(1,'rgba(40,40,60,0.5)');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.ellipse(0,0,st.rx,st.ry,0,0,6.2832); ctx.fill();
+      ctx.restore();
     }
 
+    // the rakes trace the mantra
     ctx.lineCap='round';
     for(var i=tips.length-1;i>=0;i--){ var t=tips[i];
-      var nx=t.x+Math.cos(t.a)*2.2, ny=t.y+Math.sin(t.a)*2.2;
-      t.a+=(rnd()-0.5)*0.7;
-      ctx.strokeStyle='rgba(180,128,255,0.14)'; ctx.lineWidth=1;
+      var nx=t.x+(t.tx-t.x)*0.08+Math.cos(t.life*0.4)*1.4,
+          ny=t.y+(t.ty-t.y)*0.08+Math.sin(t.life*0.4)*1.4;
+      ctx.strokeStyle='rgba(180,128,255,0.16)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(t.x,t.y); ctx.lineTo(nx,ny); ctx.stroke();
       t.x=nx; t.y=ny; t.life++;
-      if(rnd()<0.03 && tips.length<260){ tips.push({x:t.x,y:t.y,a:t.a+(rnd()<0.5?-0.9:0.9),life:t.life,max:t.max}); }
-      if(rnd()<0.004 && nodes.length<90){ nodes.push({x:t.x,y:t.y,r:0.8,a:0.85}); }
-      if(t.life>t.max || t.x<-60||t.x>W+60||t.y<-60||t.y>H+60){ tips.splice(i,1); }
+      if(t.life>t.max){ tips.splice(i,1); spawnRake(); }
     }
-    if(tips.length<18) spawn(6);
+    if(tips.length<60) spawnRake();
 
-    for(var j=nodes.length-1;j>=0;j--){ var nd=nodes[j];
-      nd.r+=0.03; nd.a-=0.006;
-      if(nd.a<=0){ nodes.splice(j,1); continue; }
-      var g2=ctx.createRadialGradient(nd.x,nd.y,0,nd.x,nd.y,nd.r*7);
-      g2.addColorStop(0,'rgba(255,209,92,'+nd.a.toFixed(3)+')');
-      g2.addColorStop(1,'rgba(255,209,92,0)');
-      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r*7,0,6.2832); ctx.fill();
-      ctx.fillStyle='rgba(255,209,92,'+nd.a.toFixed(3)+')';
-      ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r,0,6.2832); ctx.fill();
-    }
+    // enlightenment: the golden youth's radiance, breathing
+    enlighten.phase+=0.01;
+    var br=0.10+0.05*Math.sin(enlighten.phase);
+    var g3=ctx.createRadialGradient(enlighten.x,enlighten.y,0,enlighten.x,enlighten.y,W*0.28);
+    g3.addColorStop(0,'rgba(255,209,92,'+br.toFixed(3)+')');
+    g3.addColorStop(1,'rgba(255,209,92,0)');
+    ctx.fillStyle=g3; ctx.fillRect(0,0,W,H);
 
     if(!reduce) requestAnimationFrame(frame);
   }
