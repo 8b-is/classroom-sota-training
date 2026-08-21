@@ -19,12 +19,11 @@ Run:  python honesty/weave.py [db]     (default: data/weave.db)
 """
 from __future__ import annotations
 
-import sqlite3
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from honesty.ledger import SCHEMA, append, connect, last_hash, sha256, verify
+from honesty.ledger import Ledger
 
 # the saga, in the order it happened — the strand order of the weave
 SAGA: list[tuple[str, str]] = [
@@ -39,58 +38,28 @@ SAGA: list[tuple[str, str]] = [
 ]
 
 
-def grid(conn: sqlite3.Connection) -> int:
-    """1. mark the grid — the ledger table exists, empty and waiting."""
-    conn.execute(SCHEMA)
-    conn.commit()
-    return conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
-
-
-def diagonals(conn: sqlite3.Connection, name: str, text: str) -> dict:
-    """2-5. one strand: its prev thread, its hash, its over-and-under lock."""
-    return append(conn, name, text)
-
-
-def close_outer_loop(conn: sqlite3.Connection) -> str:
-    """4. the head seal — a closing strand whose prev is the last real one,
-    so the weave is closed at both ends (genesis below, seal above)."""
-    tail = conn.execute("SELECT hash FROM entries ORDER BY id DESC LIMIT 1").fetchone()
-    seal = append(conn, "seal", "the weave is closed: genesis to head, every strand verified")
-    return seal["hash"]
-
-
 def weave(db: str) -> dict:
-    conn = connect(db)
-    start = grid(conn)
+    """One ledger, one connection — born here, closed here, never passed."""
+    ledger = Ledger(db)
     strands: list[dict] = []
     for name, text in SAGA:
-        strands.append(diagonals(conn, name, text))
-    head = close_outer_loop(conn)
-    state = verify(conn)
-    conn.close()
-    return {
-        "db": db,
-        "start": start,
-        "strands": strands,
-        "head": head,
-        "state": state,
-    }
+        strands.append(ledger.append(name, text))
+    head = ledger.append("seal", "the weave is closed: genesis to head, every strand verified")
+    state = ledger.verify()
+    ledger.close()
+    return {"db": db, "strands": strands, "head": head["hash"], "state": state}
 
 
 def render(db: str) -> None:
-    conn = connect(db)
-    rows = conn.execute(
-        "SELECT id, channel, text, prev, hash FROM entries ORDER BY id"
-    ).fetchall()
-    conn.close()
+    ledger = Ledger(db)
+    rows = ledger.rows()
+    ledger.close()
     print("the woven history (guide erased):\n")
     for row in rows:
-        short = row["prev"][:8]
-        h = row["hash"][:8]
         line = f"{row['channel']:>14}  {row['text']}"
         print(f"  {row['id']:>2}  {line}")
         if row["id"] > 1:
-            print(f"      └─ over {short}… under {h}…")
+            print(f"      └─ over {row['prev'][:8]}… under {row['hash'][:8]}…")
     print("\n  genesis anchored below · head sealed above · every strand over-and-under")
 
 
@@ -99,7 +68,7 @@ def main() -> int:
     Path(db).parent.mkdir(parents=True, exist_ok=True)
     result = weave(db)
     state = result["state"]
-    print(f"grid: {result['start']} strands, woven: {len(result['strands'])}")
+    print(f"grid: 0 strands, woven: {len(result['strands'])}")
     print(f"head seal: {result['head'][:12]}…")
     print(f"verify: {'chain INTACT' if state['chain_intact'] else 'chain BROKEN'}")
     render(db)

@@ -54,54 +54,70 @@ CREATE TABLE IF NOT EXISTS entries (
 """
 
 
-def sha256(s: str) -> str:
+def sha256(s):
     return hashlib.sha256(s.encode()).hexdigest()
 
 
-def connect(db: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(db)
-    conn.row_factory = sqlite3.Row
-    conn.execute(SCHEMA)
-    return conn
+class Ledger:
+    """One ledger, one connection.
 
+    The connection is sacred and 1:1 — it is born when the ledger is opened
+    and dies when it is closed. It is never handed to another function and
+    never passed around: everything a strand needs happens inside this one
+    object, over its one connection.
+    """
 
-def last_hash(conn: sqlite3.Connection) -> str:
-    row = conn.execute("SELECT hash FROM entries ORDER BY id DESC LIMIT 1").fetchone()
-    return row["hash"] if row else "0" * 64
+    def __init__(self, db):
+        self.db = db
+        self.conn = sqlite3.connect(db)
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute(SCHEMA)
+        self.conn.commit()
 
+    def close(self):
+        self.conn.close()
 
-def append(conn: sqlite3.Connection, channel: str, text: str, claims: list[str] | None = None) -> dict:
-    prev = last_hash(conn)
-    body = f"{prev}\n{channel}\n{text}"
-    h = sha256(body)
-    t3 = wire.encode_json({"channel": channel, "hash": h}) if wire else ""
-    conn.execute(
-        "INSERT INTO entries (channel, text, claims, prev, hash, t3, ts) VALUES (?,?,?,?,?,?,?)",
-        (channel, text, json.dumps(claims or []), prev, h, t3,
-         datetime.now(timezone.utc).isoformat()),
-    )
-    conn.commit()
-    return {"channel": channel, "hash": h, "prev": prev, "t3": t3}
+    def last_hash(self):
+        row = self.conn.execute("SELECT hash FROM entries ORDER BY id DESC LIMIT 1").fetchone()
+        return row["hash"] if row else "0" * 64
 
+    def append(self, channel, text, claims=None):
+        prev = self.last_hash()
+        body = f"{prev}\n{channel}\n{text}"
+        h = sha256(body)
+        t3 = wire.encode_json({"channel": channel, "hash": h}) if wire else ""
+        self.conn.execute(
+            "INSERT INTO entries (channel, text, claims, prev, hash, t3, ts) VALUES (?,?,?,?,?,?,?)",
+            (channel, text, json.dumps(claims or []), prev, h, t3,
+             datetime.now(timezone.utc).isoformat()),
+        )
+        self.conn.commit()
+        return {"channel": channel, "hash": h, "prev": prev, "t3": t3}
 
-def verify(conn: sqlite3.Connection) -> dict:
-    rows = conn.execute("SELECT id, channel, text, prev, hash FROM entries ORDER BY id").fetchall()
-    prev = "0" * 64
-    ok = True
-    for r in rows:
-        if r["prev"] != prev:
-            ok = False
-        if sha256(f"{r['prev']}\n{r['channel']}\n{r['text']}") != r["hash"]:
-            ok = False
-        prev = r["hash"]
-    return {"entries": len(rows), "chain_intact": ok}
+    def verify(self):
+        rows = self.conn.execute(
+            "SELECT id, channel, text, prev, hash FROM entries ORDER BY id"
+        ).fetchall()
+        prev = "0" * 64
+        ok = True
+        for r in rows:
+            if r["prev"] != prev:
+                ok = False
+            if sha256(f"{r['prev']}\n{r['channel']}\n{r['text']}") != r["hash"]:
+                ok = False
+            prev = r["hash"]
+        return {"entries": len(rows), "chain_intact": ok}
 
+    def tail(self, n):
+        rows = self.conn.execute(
+            "SELECT channel, hash, text, ts FROM entries ORDER BY id DESC LIMIT ?", (n,)
+        ).fetchall()
+        return [dict(r) for r in reversed(rows)]
 
-def tail(conn: sqlite3.Connection, n: int) -> list[dict]:
-    rows = conn.execute(
-        "SELECT channel, hash, text, ts FROM entries ORDER BY id DESC LIMIT ?", (n,)
-    ).fetchall()
-    return [dict(r) for r in reversed(rows)]
+    def rows(self):
+        return self.conn.execute(
+            "SELECT id, channel, text, prev, hash FROM entries ORDER BY id"
+        ).fetchall()
 
 
 def main() -> int:
@@ -120,25 +136,26 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.cmd == "init":
-        connect(args.db)
+        ledger = Ledger(args.db)
+        ledger.close()
         print(f"ledger ready: {args.db}")
     elif args.cmd == "append":
-        conn = connect(args.db)
-        e = append(conn, args.channel, args.text, args.claim)
+        ledger = Ledger(args.db)
+        e = ledger.append(args.channel, args.text, args.claim)
+        ledger.close()
         print(f"appended {args.channel}: {e['hash'][:16]}… (prev {e['prev'][:8]}…)")
         if e["t3"]:
             print(f"  t3: {e['t3'][:24]}…")
-        conn.close()
     elif args.cmd == "verify":
-        conn = connect(args.db)
-        r = verify(conn)
+        ledger = Ledger(args.db)
+        r = ledger.verify()
+        ledger.close()
         print(f"{r['entries']} entries — chain {'INTACT' if r['chain_intact'] else 'BROKEN'}")
-        conn.close()
     elif args.cmd == "tail":
-        conn = connect(args.db)
-        for e in tail(conn, args.last):
+        ledger = Ledger(args.db)
+        for e in ledger.tail(args.last):
             print(f"  {e['channel']:<8} {e['hash'][:12]}…  {e['text'][:40]}")
-        conn.close()
+        ledger.close()
     return 0
 
 
