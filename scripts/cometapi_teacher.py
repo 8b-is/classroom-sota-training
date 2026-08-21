@@ -41,10 +41,16 @@ TEACHERS = {
     "deepseek-r1": ("deepseek-r1-0528", True),
     # the expanded council's new dimensions (r: new open families, code, vision)
     "glm-5.3": ("glm-5.3", True),
+    "glm-5.2": ("glm-5.2", True),
     "kimi-k3": ("kimi-k3", True),
     "kimi-k2.7-code": ("kimi-k2.7-code", True),
     "minimax-m3": ("minimax-m3", True),
+    "minimax-m2.7": ("minimax-m2.7", True),
+    "mimo-v2.5": ("mimo-v2.5", True),
+    "deepseek-chat": ("deepseek-chat", True),
     "qwen3-vl-235b": ("qwen3-vl-235b-a22b", True),
+    # the fast frontier judge — the council's one closed-weight exception
+    "claude-haiku": ("claude-haiku-4-5-20251001", False),
 }
 
 # the council in deliberation order — the geometric-mean softmax consensus
@@ -58,8 +64,9 @@ COUNCIL = ["qwen3.8-max", "qwen3.7-max", "qwen3-235b", "qwen3-30b",
 # heard and sees what it never saw.
 EXTENDED = ["qwen3.8-max", "qwen3.7-max", "qwen3-235b", "qwen3-30b",
             "qwen3-coder", "deepseek-pro", "deepseek-r2", "deepseek-r1",
-            "glm-5.3", "kimi-k3", "kimi-k2.7-code", "minimax-m3",
-            "qwen3-vl-235b"]
+            "glm-5.3", "glm-5.2", "kimi-k3", "kimi-k2.7-code",
+            "minimax-m3", "minimax-m2.7", "mimo-v2.5", "deepseek-chat",
+            "qwen3-vl-235b", "claude-haiku"]
 
 
 def teacher_call(model: str, prompt: str, max_tokens: int, temperature: float) -> dict:
