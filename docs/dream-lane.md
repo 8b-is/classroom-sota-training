@@ -42,7 +42,7 @@ breathes and dreams in text. `--breath-ratio` sets exhale/inhale length.
 | lane | source | samples |
 |------|--------|---------|
 | `dyad` | `.remember/logs/memory-*.log` + raw sessions + `dream_ama.jsonl` | the live Q&A + the dreams |
-| `constellation` | enthea shrine/spec/wire/voices · 8b-public-documents · wiki (opt-in) | the constellation's knowledge |
+| `constellation` | **the whole enthea repo** (engine, shrine, spec, wire, voices) · **the dyad-mapping corpus** (sessions, essences, bridge) · 8b-public-documents · wiki (opt-in) | the constellation's knowledge |
 
 ```bash
 python scripts/capture_dyad.py --lane all --out data/train_ultra_corpus.jsonl

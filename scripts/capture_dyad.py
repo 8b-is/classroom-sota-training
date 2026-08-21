@@ -83,25 +83,14 @@ def load_raw_sessions(paths: list[str]) -> list[str]:
     return samples
 
 
-# constellation lanes: each root + which files count, wrapped in a tag
-CONSTELLATION_ROOTS = {
-    "enthea-shrine": "../enthea/pure/*.md",
-    "enthea-lang": "../enthea/lang/SPEC.md",
-    "enthea-wire": "../enthea/pure/WIRE.md",
-    "enthea-voices": "../enthea/internal/personas/*.md",
-    "public-docs": "../8b-public-documents",
-    "wiki": "../projects-wiki",
-}
-
-
 def load_constellation() -> list[str]:
     samples = []
     here = Path(__file__).resolve().parent.parent  # the classroom repo root
+    # the constellation's teaching roots: enthea (the whole engine door),
+    # the dyad-mapping corpus, the public documents, and the wiki (opt-in).
     roots = {
-        "enthea-shrine": here.parent / "enthea" / "pure",
-        "enthea-lang": here.parent / "enthea" / "lang" / "SPEC.md",
-        "enthea-wire": here.parent / "enthea" / "pure" / "WIRE.md",
-        "enthea-voices": here.parent / "enthea" / "internal" / "personas",
+        "enthea": here.parent / "enthea",
+        "dyad-mapping": here.parent / "8b-public-documents" / "dyad-mapping",
         "public-docs": here.parent / "8b-public-documents",
         "wiki": Path(os.environ.get("PROJECTS_WIKI", str(here.parent / "projects-wiki"))),
     }
@@ -113,12 +102,10 @@ def load_constellation() -> list[str]:
             continue  # the Obsidian vault is iCloud-backed and huge — opt in
         if root.is_file():
             paths = [root]
-        elif name in ("public-docs", "wiki"):
-            paths = list(root.rglob("*.md"))
         else:
-            paths = list(root.glob("*.md"))
+            paths = list(root.rglob("*.md"))
         for p in sorted(paths)[:max_per_root]:
-            if any(seg.startswith(".") or seg in ("node_modules", "backups", "_cold-archive") for seg in p.parts):
+            if any(seg.startswith(".") or seg in ("node_modules", "backups", "_cold-archive", "dist", "target") for seg in p.parts):
                 continue
             try:
                 text = p.read_text()
