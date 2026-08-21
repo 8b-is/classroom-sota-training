@@ -55,6 +55,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
 
   <style>
+  #bg-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.75;}
+  main,footer{position:relative;z-index:1;}
     :root {
       --bg: #04060c;
       --bg-surface: #0a0e1a;
@@ -734,6 +736,7 @@
 </style>
 </head>
 <body>
+<canvas id="bg-canvas"></canvas>
 
   <canvas id="orbit-canvas"></canvas>
 
@@ -1310,6 +1313,74 @@
   } catch (e) {}
 </script>
 
+
+
+<!-- the zen garden — pocoo-style raking, in the classroom's colors -->
+<script>
+(function(){
+  var c=document.getElementById('bg-canvas'); if(!c) return;
+  var ctx=c.getContext('2d'); if(!ctx) return;
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var s=987654321;
+  function rnd(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }
+  var W,H,DPR;
+  function rs(){ if(!c||!ctx) return; DPR=Math.min(2,window.devicePixelRatio||1); W=innerWidth||800; H=innerHeight||600; c.width=W*DPR; c.height=H*DPR; c.style.width=W+'px'; c.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  rs(); window.addEventListener('resize',rs,{passive:true});
+
+  // the Boolean alphabet + the trits — the golden youth's own glyphs
+  var GLYPHS=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','-','+'];
+  var glyphs=[];
+  for(var i=0;i<26;i++){ glyphs.push({x:rnd()*W,y:rnd()*H,sz:12+rnd()*28,a:0.02+rnd()*0.05,vx:(rnd()-0.5)*0.12,vy:(rnd()-0.5)*0.09,ch:GLYPHS[(rnd()*GLYPHS.length)|0]}); }
+
+  // the rake — zen-garden strokes that wander and branch
+  var tips=[];
+  function spawn(n){ for(var i=0;i<n;i++){ tips.push({x:W*(0.5+(rnd()-0.5)*0.9),y:H*(0.72+rnd()*0.4),a:-Math.PI/2+(rnd()-0.5)*1.6,life:0,max:130+rnd()*170}); } }
+  spawn(26);
+
+  // the golden youth — nodes glowing where the rake passes
+  var nodes=[];
+
+  function frame(){
+    ctx.fillStyle='rgba(7,6,13,0.10)'; ctx.fillRect(0,0,W,H);
+
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(var i=0;i<glyphs.length;i++){ var g=glyphs[i];
+      g.x+=g.vx; g.y+=g.vy;
+      if(g.x<-50)g.x=W+50; if(g.x>W+50)g.x=-50; if(g.y<-50)g.y=H+50; if(g.y>H+50)g.y=-50;
+      ctx.fillStyle='rgba(255,209,92,'+g.a.toFixed(3)+')';
+      ctx.font='500 '+g.sz+'px Georgia,"Times New Roman",serif';
+      ctx.fillText(g.ch,g.x,g.y);
+    }
+
+    ctx.lineCap='round';
+    for(var i=tips.length-1;i>=0;i--){ var t=tips[i];
+      var nx=t.x+Math.cos(t.a)*2.2, ny=t.y+Math.sin(t.a)*2.2;
+      t.a+=(rnd()-0.5)*0.7;
+      ctx.strokeStyle='rgba(180,128,255,0.14)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(t.x,t.y); ctx.lineTo(nx,ny); ctx.stroke();
+      t.x=nx; t.y=ny; t.life++;
+      if(rnd()<0.03 && tips.length<260){ tips.push({x:t.x,y:t.y,a:t.a+(rnd()<0.5?-0.9:0.9),life:t.life,max:t.max}); }
+      if(rnd()<0.004 && nodes.length<90){ nodes.push({x:t.x,y:t.y,r:0.8,a:0.85}); }
+      if(t.life>t.max || t.x<-60||t.x>W+60||t.y<-60||t.y>H+60){ tips.splice(i,1); }
+    }
+    if(tips.length<18) spawn(6);
+
+    for(var j=nodes.length-1;j>=0;j--){ var nd=nodes[j];
+      nd.r+=0.03; nd.a-=0.006;
+      if(nd.a<=0){ nodes.splice(j,1); continue; }
+      var g2=ctx.createRadialGradient(nd.x,nd.y,0,nd.x,nd.y,nd.r*7);
+      g2.addColorStop(0,'rgba(255,209,92,'+nd.a.toFixed(3)+')');
+      g2.addColorStop(1,'rgba(255,209,92,0)');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r*7,0,6.2832); ctx.fill();
+      ctx.fillStyle='rgba(255,209,92,'+nd.a.toFixed(3)+')';
+      ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r,0,6.2832); ctx.fill();
+    }
+
+    if(!reduce) requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
 
 <!-- ternarySIMDJSON live-status: decode the t3j frame, per enthea pure/WIRE.md -->
 <script>
