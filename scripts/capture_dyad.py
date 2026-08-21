@@ -250,6 +250,9 @@ def main() -> int:
     ap.add_argument("--out", default="data/train_ultra_corpus.jsonl")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max-samples", type=int, default=0, help="0 = all")
+    ap.add_argument("--slice-bytes", type=int, default=0,
+                    help="the $200 lane: emit only a tiny curated slice (~N MB), "
+                         "TinyStories-style — sources + dyad first, then a capped slice")
     args = ap.parse_args()
 
     samples = []
@@ -284,6 +287,19 @@ def main() -> int:
     random.Random(args.seed).shuffle(uniq)
     if args.max_samples:
         uniq = uniq[: args.max_samples]
+
+    if args.slice_bytes > 0:
+        # the $200 lane: curated first (sources, dyad, dreams), then a capped slice
+        budget = args.slice_bytes * 1024 * 1024
+        curated = [s for s in uniq if any(k in s for k in ("<|source-doc|>", "<|dyad-teaching|>", "<|ama-pupil|>", "<|ama-teacher|>"))]
+        rest = [s for s in uniq if s not in curated]
+        picked, size = list(curated), sum(len(s) for s in curated)
+        for s in rest:
+            if size + len(s) > budget:
+                break
+            picked.append(s)
+            size += len(s)
+        uniq = picked
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w") as f:
