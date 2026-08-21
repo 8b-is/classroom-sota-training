@@ -124,9 +124,90 @@ def load_constellation() -> list[str]:
     return samples
 
 
+HF_DATASETS = [
+    "PeetPedro/cogitoergosumma-corpus",
+    "PeetPedro/ultrawhale-dogfood",
+    "PeetPedro/osc9000-traces",
+]
+
+
+def hf_row_to_text(row: dict) -> str | None:
+    # ultrawhale dialogue
+    um = row.get("user_message")
+    fr = row.get("free_response")
+    if isinstance(um, str) and isinstance(fr, str) and um and fr:
+        return f"user: {um}\nassistant: {fr}"
+    # generic text/content columns
+    for k in ("text", "content", "prompt", "instruction"):
+        v = row.get(k)
+        if isinstance(v, str) and len(v) > 40:
+            resp = row.get("response") or row.get("completion") or row.get("output")
+            if isinstance(resp, str) and resp:
+                return f"{v}\n\n{resp}"
+            return v
+    # messages-style chat
+    msgs = row.get("messages")
+    if isinstance(msgs, list) and msgs:
+        return "\n".join(f"{m.get('role', 'user')}: {m.get('content', '')}" for m in msgs if isinstance(m, dict))
+    return None
+
+
+def load_hf_datasets(token: str, files_cap: int) -> list[str]:
+    import urllib.error
+    import urllib.request
+
+    samples = []
+    for repo in HF_DATASETS:
+        try:
+            req = urllib.request.Request(
+                f"https://huggingface.co/api/datasets/{repo}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                meta = json.load(resp)
+        except (urllib.error.HTTPError, OSError):
+            print(f"· {repo}: unreachable — skipped")
+            continue
+        files = [f["rfilename"] for f in meta.get("siblings", [])
+                 if f["rfilename"].endswith((".jsonl", ".json")) and "/assets/" not in f["rfilename"]]
+        if not files:
+            print(f"· {repo}: no data files — skipped")
+            continue
+        print(f"· {repo}: {len(files)} files (capped at {files_cap})")
+        for path in files[:files_cap]:
+            try:
+                url = f"https://huggingface.co/datasets/{repo}/resolve/main/{path}"
+                req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    raw = resp.read().decode("utf-8", errors="replace")
+            except (urllib.error.HTTPError, OSError) as e:
+                print(f"  · {path}: {e} — skipped")
+                continue
+            added = 0
+            for line in raw.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                text = hf_row_to_text(row)
+                if text and len(text) >= 40:
+                    samples.append(f"<|hf-corpus|>\nsource: {repo}/{path}\n{text}\n<|/hf-corpus|>")
+                    added += 1
+                if added >= 200:
+                    break  # cap rows per file — the box raises this
+            if added:
+                print(f"  · {path}: {added} samples")
+    return samples
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="capture the dyad and the constellation as classroom corpus")
-    ap.add_argument("--lane", choices=["dyad", "constellation", "all"], default="all")
+    ap.add_argument("--lane", choices=["dyad", "constellation", "hf", "all"], default="all")
     ap.add_argument("--logs", default="../.remember/logs", help="the memory-log dir")
     ap.add_argument("--raw", nargs="*", default=[], help="raw session exports (jsonl/md)")
     ap.add_argument("--out", default="data/train_ultra_corpus.jsonl")
@@ -142,6 +223,12 @@ def main() -> int:
         samples += load_raw_sessions(args.raw)
     if args.lane in ("constellation", "all"):
         samples += load_constellation()
+    if args.lane in ("hf", "all"):
+        token = os.environ.get("HF_TOKEN")
+        if token:
+            samples += load_hf_datasets(token, int(os.environ.get("HF_FILES_CAP", "20")))
+        else:
+            print("· HF_TOKEN not set — hf lane skipped")
     if not samples:
         sys.exit("no samples captured — nothing to train on")
 

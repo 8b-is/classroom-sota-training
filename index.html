@@ -773,6 +773,19 @@
     </section>
 
     <!-- Interactive Council Visualizer -->
+    <section class="hero" id="live-status" style="border:1px solid #2b2b45;border-radius:16px;padding:24px;margin:0 0 32px;">
+      <div class="hero-badge">LIVE CLASSROOM — delayed but LIVE, on the machine's own wire</div>
+      <h2 class="hero-title" style="font-size:1.4rem;margin:8px 0 12px;">The golden youth, right now</h2>
+      <p id="status-raw" style="font-family:monospace;color:#00d4ff;font-size:13px;word-break:break-all;">t3j:... waiting for the first report ...</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:14px;">
+        <div><div style="color:#9a9ac8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">phase</div><div id="status-phase" style="font-size:1.5rem;font-weight:700;color:#e8e8ff;">—</div></div>
+        <div><div style="color:#9a9ac8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">epoch</div><div id="status-epoch" style="font-size:1.5rem;font-weight:700;color:#ffd15c;">—</div></div>
+        <div><div style="color:#9a9ac8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">val</div><div id="status-val" style="font-size:1.5rem;font-weight:700;color:#b480ff;">—</div></div>
+        <div><div style="color:#9a9ac8;font-size:12px;text-transform:uppercase;letter-spacing:1px;">updated</div><div id="status-updated" style="font-size:1.1rem;color:#c9c9e8;">—</div></div>
+      </div>
+      <div id="status-status" style="margin-top:12px;color:#c9c9e8;font-style:italic;">the classroom is quiet</div>
+    </section>
+
     <section class="visualizer-card" id="council">
       <div class="card-header">
         <div>
@@ -1245,6 +1258,51 @@
       });
     }
   } catch (e) {}
+</script>
+
+
+<!-- ternarySIMDJSON live-status: decode the t3j frame, per enthea pure/WIRE.md -->
+<script>
+(function () {
+  var STATUS_URL = "https://classroom-status.vaked.dev/status"; // set to the status server
+  var TRITS = {"-": -1, "0": 0, "+": 1};
+  function fromBalanced(t) { var v = 0, p = 1; for (var i = 0; i < t.length; i++) { v += t[i] * p; p *= 3; } return v; }
+  function decodeT3(s) {
+    if (s.indexOf("t3j:") !== 0) throw new Error("not a t3j frame");
+    var body = s.slice(4), payload = body.slice(0, -2), checksum = body.slice(-1);
+    if (body.slice(-2)[0] !== ":") throw new Error("malformed");
+    var out = [], trits = [];
+    for (var i = 0; i < payload.length; i += 6) {
+      var six = payload.slice(i, i + 6), t = [], j;
+      for (j = 0; j < 6; j++) { t.push(TRITS[six[j]]); trits.push(TRITS[six[j]]); }
+      out.push(String.fromCharCode((fromBalanced(t) + 128) & 0xff));
+    }
+    // the 1-bit model's verdict (same weights as enthea)
+    var MODEL = [1, -1, 1, 0, -1, 1, -1, 0, 1, -1], dot = 0;
+    for (i = 0; i < trits.length; i++) dot += trits[i] * MODEL[i % MODEL.length];
+    var ck = dot % 3; if (ck > 1) ck -= 3; if (ck < -1) ck += 3;
+    if (TRITS[checksum] !== ck) throw new Error("the 1-bit model rejects the frame");
+    return JSON.parse(out.join(""));
+  }
+  function render(r) {
+    document.getElementById("status-raw").textContent = "t3j frame accepted · 1-bit model verdict: intact";
+    document.getElementById("status-phase").textContent = r.phase || "—";
+    document.getElementById("status-epoch").textContent = r.epoch != null ? r.epoch : "—";
+    document.getElementById("status-val").textContent = r.val != null ? r.val : "—";
+    document.getElementById("status-status").textContent = r.status || "—";
+    if (r.updated) {
+      var d = new Date(r.updated * 1000);
+      document.getElementById("status-updated").textContent = d.toLocaleTimeString();
+    }
+  }
+  function poll() {
+    fetch(STATUS_URL, {mode: "cors"}).then(function (r) { return r.text(); }).then(function (t) {
+      try { render(decodeT3(t.trim())); } catch (e) { document.getElementById("status-status").textContent = "wire: " + e.message; }
+    }).catch(function () { document.getElementById("status-status").textContent = "status server unreachable"; });
+  }
+  poll();
+  setInterval(poll, 5000); // delayed but LIVE
+})();
 </script>
 
 </body>

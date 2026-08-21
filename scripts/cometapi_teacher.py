@@ -27,16 +27,24 @@ import urllib.request
 
 BASE_URL = os.environ.get("COMETAPI_BASE_URL", "https://www.cometapi.com/v1")
 
-# the council's external teacher table: id → (model name, thinking mode flag)
+# the council's external teacher table: id → (CometAPI model id, thinking)
+# — my eight picks from the live catalog: four Qwen + four DeepSeek, all
+# open-weights, spanning the generations, MAX thinking.
 TEACHERS = {
-    "qwen2.5": ("Qwen/Qwen2.5-72B-Instruct", False),
-    "qwen3": ("Qwen/Qwen3-235B-A22B-Instruct", True),
-    "qwen3.5": ("Qwen/Qwen3.5-30B-A3B-Instruct", True),
-    "qwen3.8-max": ("Qwen/Qwen3.8-Max", True),
-    "deepseek-r1": ("deepseek/deepseek-r1", True),
-    "deepseek-reasoner": ("deepseek-reasoner", True),
-    "deepseek-pro": ("deepseek/deepseek-pro", True),
+    "qwen3.8-max": ("qwen3.8-max", True),
+    "qwen3.7-max": ("qwen3.7-max", True),
+    "qwen3-235b": ("qwen3-235b-a22b", True),
+    "qwen3-30b": ("qwen3-30b-a3b", True),
+    "qwen3-coder": ("qwen3-coder-480b-a35b-instruct", True),
+    "deepseek-pro": ("deepseek-v4-pro", True),
+    "deepseek-r2": ("deepseek-r2", True),
+    "deepseek-r1": ("deepseek-r1-0528", True),
 }
+
+# the council in deliberation order — the geometric-mean softmax consensus
+# is taken over exactly these eight elders.
+COUNCIL = ["qwen3.8-max", "qwen3.7-max", "qwen3-235b", "qwen3-30b",
+           "qwen3-coder", "deepseek-pro", "deepseek-r2", "deepseek-r1"]
 
 
 def teacher_call(model: str, prompt: str, max_tokens: int, temperature: float) -> dict:
@@ -77,9 +85,10 @@ def teacher_call(model: str, prompt: str, max_tokens: int, temperature: float) -
 def main() -> int:
     ap = argparse.ArgumentParser(description="CometAPI teacher inference for the classroom")
     ap.add_argument("--teacher", choices=TEACHERS, default="qwen3.8-max")
+    ap.add_argument("--council", action="store_true", help="run all eight elders in deliberation order")
     ap.add_argument("--prompt", default=None)
     ap.add_argument("--file", default=None, help="read the prompt from a file")
-    ap.add_argument("-n", "--count", type=int, default=1, help="how many teacher calls")
+    ap.add_argument("-n", "--count", type=int, default=1, help="how many teacher calls per elder")
     ap.add_argument("--max-tokens", type=int, default=256)
     ap.add_argument("--temperature", type=float, default=0.7)
     args = ap.parse_args()
@@ -90,20 +99,22 @@ def main() -> int:
     else:
         prompt = args.prompt or "What is the geometric-mean softmax consensus, and why does a council of elders prefer it over a majority vote?"
 
-    model, thinking = TEACHERS[args.teacher]
-    print(f"cometapi teacher — {args.teacher} ({model})"
-          + (" · MAX thinking" if thinking else ""))
+    elders = COUNCIL if args.council else [args.teacher]
+    print(f"cometapi council — {len(elders)} elders · {', '.join(elders)}")
     total_in, total_out, total_s = 0, 0, 0.0
-    for i in range(args.count):
-        r = teacher_call(model, prompt, args.max_tokens, args.temperature)
-        if r["reasoning"]:
-            print(f"\n[{i+1}] reasoning ({len(r['reasoning'])} chars)")
-        print(f"\n[{i+1}] {r['content'].strip()}")
-        print(f"  → {r['prompt_tokens']} in / {r['completion_tokens']} out · {r['seconds']:.2f}s")
-        total_in += r["prompt_tokens"]
-        total_out += r["completion_tokens"]
-        total_s += r["seconds"]
-    print(f"\ntotals: {total_in} in / {total_out} out · {total_s:.2f}s")
+    for elder in elders:
+        model, thinking = TEACHERS[elder]
+        print(f"\n· {elder} ({model})" + (" · MAX thinking" if thinking else ""))
+        for i in range(args.count):
+            r = teacher_call(model, prompt, args.max_tokens, args.temperature)
+            if r["reasoning"]:
+                print(f"\n  [{i+1}] reasoning ({len(r['reasoning'])} chars)")
+            print(f"\n  [{i+1}] {r['content'].strip()}")
+            print(f"  → {r['prompt_tokens']} in / {r['completion_tokens']} out · {r['seconds']:.2f}s")
+            total_in += r["prompt_tokens"]
+            total_out += r["completion_tokens"]
+            total_s += r["seconds"]
+    print(f"\ntotals: {total_in} in / {total_out} out · {total_s:.2f}s across {len(elders)} elders")
     return 0
 
 

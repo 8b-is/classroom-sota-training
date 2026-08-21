@@ -30,8 +30,25 @@ python scripts/cometapi_teacher.py --teacher qwen3.8-max --prompt "..."
 python scripts/cometapi_teacher.py --teacher deepseek-r1 --file prompt.txt -n 3
 ```
 
-The teacher table (`TEACHERS` in the script) maps a short id to the model
-name and whether it uses thinking mode.
+The teacher table (`TEACHERS` in the script) maps a short id to the live
+CometAPI model id and whether it uses thinking mode. The council is eight
+elders — four Qwen, four DeepSeek, all open-weights, MAX thinking:
+
+| elder | model | role |
+|-------|-------|------|
+| qwen3.8-max | `qwen3.8-max` | the newest, MAX thinking |
+| qwen3.7-max | `qwen3.7-max` | the prior gen, MAX thinking |
+| qwen3-235b | `qwen3-235b-a22b` | the flagship MoE |
+| qwen3-30b | `qwen3-30b-a3b` | the A3B small MoE |
+| qwen3-coder | `qwen3-coder-480b-a35b-instruct` | the coder |
+| deepseek-pro | `deepseek-v4-pro` | deepseekPro, MAX thinking |
+| deepseek-r2 | `deepseek-r2` | the newest reasoner |
+| deepseek-r1 | `deepseek-r1-0528` | the R1 lineage |
+
+Run the whole council in deliberation order with `--council`:
+```bash
+python scripts/cometapi_teacher.py --council --prompt "..."
+```
 
 ## The credits
 

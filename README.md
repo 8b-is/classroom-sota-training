@@ -1,5 +1,9 @@
 # classroom-sota-training
 
+<p align="center">
+  <img src="./assets/classroom-hero.svg" width="100%" alt="The Council of Elders — the golden youth dreams">
+</p>
+
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Landing%20Page-62e6c9?style=flat-square)](https://8b-is.github.io/classroom-sota-training/)
 [![Published Model](https://img.shields.io/badge/Hugging%20Face-quantal--classroom--1.6-ffd15c?style=flat-square)](https://huggingface.co/PeetPedro/quantal-classroom-1.6)
 [![HF Space Explorer](https://img.shields.io/badge/HF%20Space-CogitoErgoSumma-b48bff?style=flat-square)](https://huggingface.co/spaces/PeetPedro/cogitoergosumma-corpus)
@@ -9,6 +13,30 @@
 pipeline. A thinking-enabled pupil model sits in the middle of the room — the
 *golden youth* — and is taught, philosophized with, and capability-built by a
 council of **8 + 1 open-weights teacher models**.
+
+## The lanes
+
+The classroom is more than a loss function:
+
+- **The council (CometAPI)** — 8 external elders, four Qwen + four
+  DeepSeek, all open-weights, MAX thinking, one OpenAI-compatible API
+  (`scripts/cometapi_teacher.py --council`).
+- **The dream lane** — Riva's breathing clock streams `dream.vaked.dev`:
+  inhale chants OM MANI PADME HUNG, exhale enters the DREAM state and AMAs
+  Peter about the pupil's dreams (`scripts/riva_dream.py`,
+  `train_with_dream.sh`).
+- **The corpus** — dyad-live (memory logs + the dreams), the whole
+  constellation (enthea, dyad-mapping, the papers), and the HF datasets
+  (cogitoergosumma, ultrawhale-dogfood, osc9000-traces) via
+  `scripts/capture_dyad.py`.
+- **The long context** — TurboQuant: runtime KV-cache quantization, 100K
+  context on a consumer GPU, the pupil's long memory (`docs/turboquant.md`).
+- **The live status** — the landing page polls a webhook server and renders
+  the report on the machine's own wire, ternarySIMDJSON
+  (`status/server.py`, `status/wire.py`).
+
+Every byte the classroom speaks is ternary: markdown via `mq`, text via
+`t3:`, JSON via `t3j:` — the data plane of the universe of training.
 
 ## The concept
 
