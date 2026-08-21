@@ -13,6 +13,7 @@ import json
 
 WIRE_MAGIC = "t3:"
 WIRE_JSON_MAGIC = "t3j:"  # ternarySIMDJSON — JSON on the machine's own wire
+WIRE_YAML_MAGIC = "t3y:"  # qYAML — YAML on the machine's own wire
 MODEL = [1, -1, 1, 0, -1, 1, -1, 0, 1, -1]  # the same checksum model as enthea
 
 TRIT_CHAR = {-1: "-", 0: "0", 1: "+"}
@@ -73,6 +74,11 @@ def encode_json(obj) -> str:
     return _encode(json.dumps(obj, separators=(",", ":")).encode(), WIRE_JSON_MAGIC)
 
 
+def encode_yaml_text(doc: str) -> str:
+    """qYAML — a YAML document on the machine's own wire (t3y frame)."""
+    return _encode(doc.encode(), WIRE_YAML_MAGIC)
+
+
 def _decode(s: str, magic: str) -> bytes:
     if not s.startswith(magic) or len(s) < len(magic) + 2:
         raise ValueError(f"not a {magic} frame")
@@ -99,3 +105,8 @@ def decode(s: str) -> bytes:
 def decode_json(s: str):
     """Decode a ternarySIMDJSON frame back to a Python value."""
     return json.loads(_decode(s, WIRE_JSON_MAGIC).decode())
+
+
+def decode_yaml(s: str) -> str:
+    """Decode a qYAML frame back to the YAML document text."""
+    return _decode(s, WIRE_YAML_MAGIC).decode()
