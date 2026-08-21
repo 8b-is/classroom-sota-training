@@ -38,6 +38,17 @@ The classroom is more than a loss function:
 Every byte the classroom speaks is ternary: markdown via `mq`, text via
 `t3:`, JSON via `t3j:` — the data plane of the universe of training.
 
+## Referrals — support the classroom, earn together
+
+| lane | link | reward |
+|------|------|--------|
+| opencode Go | [opencode.ai/go?ref=CMTEVHACZC](https://opencode.ai/go?ref=CMTEVHACZC) | you both get $5 when a friend subscribes |
+| CometAPI | [cometapi.com aff kFxG](https://www.cometapi.com/console/login?aff=kFxG) | 10% of every friend's payment ($10+) |
+| RunPod | [runpod.io?ref=v7hg20fc](https://runpod.io?ref=v7hg20fc) | $5 credit bonus per invite |
+| ModelArk | [byteplus.com ModelArk](https://www.byteplus.com/activity/codingplan?ac=MMAUCIS9NT1S&rc=YUKGHB3M) | 10% off, first month from $4.50 |
+| DeepSeek tokens | [platform.deepseek.com](https://platform.deepseek.com/) | up to $30 coupon per referral |
+
+
 ## The concept
 
 The pupil is not force-fed a single objective function. The elders teach the
