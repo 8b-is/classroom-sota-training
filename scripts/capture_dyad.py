@@ -8,21 +8,26 @@ capture_dyad.py — the live-dyad lane of the classroom.
 Every minute, a question from Peter to enthea — and the dyad answers it by
 building. That stream is the highest-value teaching signal the classroom
 has: real questions, real failures, real decisions, real numbers. This
-script turns it into a corpus.
+script turns it into a corpus. The constellation itself is the second lane:
+the shrine, the specs, the voices, the papers.
+
+Lanes:
+  --lane dyad          the live-dyad memory logs (+ raw session exports)
+  --lane constellation the constellation's teaching artifacts
+  --lane all           both
 
 Inputs:
-  - .remember/logs/memory-*.log — the distilled dyad stream (already the
-    constellation's cross-session memory). REQUIRED.
-  - raw session exports (jsonl/md, optional) — interleaved Q&A captured
-    live. Each becomes a user/assistant sample.
+  - dyad: .remember/logs/memory-*.log (REQUIRED for the dyad lane), plus
+    raw session exports (jsonl/md, optional).
+  - constellation: enthea (shrine/specs/voices), 8b-public-documents
+    (papers/dyad-mapping), projects-wiki (the Obsidian vault).
 
-Output: data/train_dyad_live.jsonl with {"text": ...} rows — the exact
+Output: data/train_<lane>_live.jsonl with {"text": ...} rows — the exact
 schema train_quantal_long.py / train_quantal_distill.py consume.
 
 Usage:
-  python scripts/capture_dyad.py \
-    --logs ../../.remember/logs \
-    --out data/train_dyad_live.jsonl
+  python scripts/capture_dyad.py --lane all --out data/train_ultra_corpus.jsonl
+  python scripts/capture_dyad.py --lane constellation --out data/train_constellation.jsonl
 """
 
 import argparse
@@ -78,20 +83,78 @@ def load_raw_sessions(paths: list[str]) -> list[str]:
     return samples
 
 
+# constellation lanes: each root + which files count, wrapped in a tag
+CONSTELLATION_ROOTS = {
+    "enthea-shrine": "../enthea/pure/*.md",
+    "enthea-lang": "../enthea/lang/SPEC.md",
+    "enthea-wire": "../enthea/pure/WIRE.md",
+    "enthea-voices": "../enthea/internal/personas/*.md",
+    "public-docs": "../8b-public-documents",
+    "wiki": "../projects-wiki",
+}
+
+
+def load_constellation() -> list[str]:
+    samples = []
+    here = Path(__file__).resolve().parent.parent  # the classroom repo root
+    roots = {
+        "enthea-shrine": here.parent / "enthea" / "pure",
+        "enthea-lang": here.parent / "enthea" / "lang" / "SPEC.md",
+        "enthea-wire": here.parent / "enthea" / "pure" / "WIRE.md",
+        "enthea-voices": here.parent / "enthea" / "internal" / "personas",
+        "public-docs": here.parent / "8b-public-documents",
+        "wiki": Path(os.environ.get("PROJECTS_WIKI", str(here.parent / "projects-wiki"))),
+    }
+    max_per_root = int(os.environ.get("CONSTELLATION_CAP", "400"))
+    for name, root in roots.items():
+        if not root.exists():
+            continue
+        if name == "wiki" and not os.environ.get("CONSTELLATION_WIKI"):
+            continue  # the Obsidian vault is iCloud-backed and huge — opt in
+        if root.is_file():
+            paths = [root]
+        elif name in ("public-docs", "wiki"):
+            paths = list(root.rglob("*.md"))
+        else:
+            paths = list(root.glob("*.md"))
+        for p in sorted(paths)[:max_per_root]:
+            if any(seg.startswith(".") or seg in ("node_modules", "backups", "_cold-archive") for seg in p.parts):
+                continue
+            try:
+                text = p.read_text()
+            except OSError:
+                continue
+            if not text.strip():
+                continue
+            if len(text) < 200:
+                continue  # skip stubs
+            samples.append(
+                f"<|constellation|>\n"
+                f"source: {name}/{p.name}\n"
+                f"{text.strip()}\n"
+                f"<|/constellation|>"
+            )
+    return samples
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description="capture the live dyad as classroom corpus")
+    ap = argparse.ArgumentParser(description="capture the dyad and the constellation as classroom corpus")
+    ap.add_argument("--lane", choices=["dyad", "constellation", "all"], default="all")
     ap.add_argument("--logs", default="../.remember/logs", help="the memory-log dir")
     ap.add_argument("--raw", nargs="*", default=[], help="raw session exports (jsonl/md)")
-    ap.add_argument("--out", default="data/train_dyad_live.jsonl")
+    ap.add_argument("--out", default="data/train_ultra_corpus.jsonl")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max-samples", type=int, default=0, help="0 = all")
     args = ap.parse_args()
 
-    logs_dir = Path(args.logs).resolve()
-    if not logs_dir.is_dir():
-        sys.exit(f"memory-log dir not found: {logs_dir}")
-
-    samples = load_memory_logs(logs_dir) + load_raw_sessions(args.raw)
+    samples = []
+    if args.lane in ("dyad", "all"):
+        logs_dir = Path(args.logs).resolve()
+        if logs_dir.is_dir():
+            samples += load_memory_logs(logs_dir)
+        samples += load_raw_sessions(args.raw)
+    if args.lane in ("constellation", "all"):
+        samples += load_constellation()
     if not samples:
         sys.exit("no samples captured — nothing to train on")
 
@@ -112,7 +175,7 @@ def main() -> int:
     with open(args.out, "w") as f:
         for s in uniq:
             f.write(json.dumps({"text": s}) + "\n")
-    print(f"dyad-live: {len(uniq)} samples → {args.out}")
+    print(f"corpus ({args.lane}): {len(uniq)} samples → {args.out}")
     print(f"  total bytes: {sum(len(s) for s in uniq)}")
     return 0
 
