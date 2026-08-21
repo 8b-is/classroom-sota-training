@@ -1,0 +1,10 @@
+{
+  "name": "Classroom SOTA Training — The Council of Elders",
+  "short_name": "the classroom",
+  "description": "Waldorf-style classroom training: a golden-youth pupil taught by a council of open-weights teachers via geometric-mean softmax consensus.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07060d",
+  "theme_color": "#07060d",
+  "icons": [{ "src": "/assets/logo.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

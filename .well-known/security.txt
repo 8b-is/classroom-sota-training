@@ -1,0 +1,5 @@
+Contact: mailto:peter@vaked.dev
+Expires: 2027-08-21T00:00:00.000Z
+Preferred-Languages: en, hu
+Canonical: https://classroom.vaked.dev/.well-known/security.txt
+Policy: https://github.com/8b-is/classroom-sota-training/security

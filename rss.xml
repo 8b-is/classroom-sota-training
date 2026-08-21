@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Classroom SOTA Training — The Council of Elders</title>
+    <link>https://classroom.vaked.dev/</link>
+    <description>Waldorf-style classroom training: a golden-youth pupil taught by a council of open-weights teachers via geometric-mean softmax consensus, the dream lane, and the constant AMA.</description>
+    <atom:link href="https://classroom.vaked.dev/rss.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Eighteen voices: the council grows</title>
+      <link>https://classroom.vaked.dev/</link>
+      <guid>classroom-018-council</guid>
+      <pubDate>Fri, 21 Aug 2026 00:00:00 GMT</pubDate>
+      <description>The council is eighteen voices — six open-weight families plus vision and one thinking frontier (claude-opus-5). The consensus finally disagrees.</description>
+    </item>
+    <item>
+      <title>The classroom breathes</title>
+      <link>https://classroom.vaked.dev/</link>
+      <guid>classroom-017-dream</guid>
+      <pubDate>Thu, 20 Aug 2026 00:00:00 GMT</pubDate>
+      <description>The dream lane streams dream.vaked.dev: inhale OM MANI PADME HUNG, exhale the DREAM state and an AMA about the pupil's dreams.</description>
+    </item>
+    <item>
+      <title>The pupil learns the whole constellation</title>
+      <link>https://classroom.vaked.dev/</link>
+      <guid>classroom-016-corpus</guid>
+      <pubDate>Wed, 19 Aug 2026 00:00:00 GMT</pubDate>
+      <description>The training corpus now includes the dyad's live Q&amp;A, the constellation's knowledge (enthea, dyad-mapping), and the HF datasets — and its own dreams.</description>
+    </item>
+  </channel>
+</rss>

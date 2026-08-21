@@ -1,0 +1,33 @@
+# Classroom SOTA Training — The Council of Elders (Vének Tanácsa)
+
+> Waldorf-style classroom training: a thinking-enabled pupil (the golden
+> youth) taught by a council of open-weights teacher models via geometric-mean
+> softmax consensus — plus a dream lane, a constant bidirectional AMA, and a
+> corpus drawn from the dyad and the constellation.
+
+## Key links
+
+- [Landing page](https://classroom.vaked.dev/)
+- [GitHub repository](https://github.com/8b-is/classroom-sota-training)
+- [Runbook](https://github.com/8b-is/classroom-sota-training/blob/main/docs/RUNBOOK.md)
+- [Infrastructure (RunPod · CometAPI · VFS)](https://github.com/8b-is/classroom-sota-training/blob/main/docs/infra.md)
+- [The dream lane](https://github.com/8b-is/classroom-sota-training/blob/main/docs/dream-lane.md)
+- [Published model — quantal-classroom-1.6](https://huggingface.co/PeetPedro/quantal-classroom-1.6)
+- [The cogito corpus](https://huggingface.co/datasets/PeetPedro/cogitoergosumma-corpus)
+
+## One-paragraph summary
+
+The golden youth (a ternary-quantized pupil, BitNet b1.58 {-1,0,+1}) sits in
+the middle of the room and is taught by a council of 8–18 open-weights
+teachers (Qwen, DeepSeek, GLM, Kimi, MiniMax, MiMo + one thinking frontier)
+whose votes combine through a geometric-mean softmax consensus — the elders'
+"unanimous decision" is a shared direction, not a majority. The pupil also
+breathes (Riva's clock streams dream.vaked.dev; inhale chants OM MANI PADME
+HUNG, exhale enters the DREAM state), talks constantly with Peter in both
+directions (the AMA), and is trained on a corpus that includes the dyad's
+live Q&A, the constellation's knowledge, and its own dreams.
+
+## Optional
+
+- The answer is not 42 by accident.
+- The towel knows where it is.
