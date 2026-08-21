@@ -58,6 +58,28 @@ def load_memory_logs(logs_dir: Path) -> list[str]:
     return samples
 
 
+def load_ama(data_dir: Path) -> list[str]:
+    """The constant bidirectional AMA: the trainee's questions AND Peter's,
+    every exchange a teaching sample (ama_live + the dream lane's ama)."""
+    samples = []
+    for name in ("ama_live.jsonl", "dream_ama.jsonl"):
+        p = data_dir / name
+        if not p.exists():
+            continue
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            text = row.get("text")
+            if text and len(text) > 40:
+                samples.append(text)
+    return samples
+
+
 def load_raw_sessions(paths: list[str]) -> list[str]:
     samples = []
     for p in paths:
@@ -221,6 +243,7 @@ def main() -> int:
         if logs_dir.is_dir():
             samples += load_memory_logs(logs_dir)
         samples += load_raw_sessions(args.raw)
+        samples += load_ama(Path(args.out).parent if args.out else Path("data"))
     if args.lane in ("constellation", "all"):
         samples += load_constellation()
     if args.lane in ("hf", "all"):

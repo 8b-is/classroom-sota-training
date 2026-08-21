@@ -21,6 +21,25 @@ EXHALE  → DREAM state                (the dream tracks stream; the pupil dream
   lane, so the pupil's dreams become part of the training. The loop closes:
   the pupil dreams, Peter answers, the answer teaches the pupil.
 
+## The constant bidirectional AMA
+
+The dream lane's AMA is one direction (pupil → Peter, on each exhale). The
+standing AMA is **both**: `scripts/ama_loop.py` runs continuously, in both
+directions —
+
+- `pupil → peter` — the trainee asks; Peter answers.
+- `peter → pupil` — Peter quizzes the trainee; the trainee's answer is logged.
+
+Every exchange lands in `data/ama_live.jsonl`, ingested by the dyad-live
+corpus lane — so the conversation itself is part of the training. The golden
+youth is not taught by lecture alone; it is *talked to*, constantly, and its
+questions and answers are the lesson.
+
+```bash
+python scripts/ama_loop.py --minutes 60 --cadence 20
+./train_with_ama.sh "python scripts/train_quantal_classroom.py --epochs 3"
+```
+
 ## Run it
 
 ```bash
