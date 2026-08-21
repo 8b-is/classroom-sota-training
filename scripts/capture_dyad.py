@@ -58,6 +58,21 @@ def load_memory_logs(logs_dir: Path) -> list[str]:
     return samples
 
 
+def load_sources(data_dir: Path) -> list[str]:
+    """Curated teaching documents — the Doombible and any future sources.
+    Each becomes a full-document teaching sample."""
+    samples = []
+    src = data_dir / "sources"
+    if not src.is_dir():
+        return samples
+    for p in sorted(src.glob("*.md")):
+        text = p.read_text(errors="ignore")
+        if not text.strip():
+            continue
+        samples.append(f"<|source-doc|>\nsource: {p.name}\n{text.strip()}\n<|/source-doc|>")
+    return samples
+
+
 def load_ama(data_dir: Path) -> list[str]:
     """The constant bidirectional AMA: the trainee's questions AND Peter's,
     every exchange a teaching sample (ama_live + the dream lane's ama)."""
@@ -243,7 +258,9 @@ def main() -> int:
         if logs_dir.is_dir():
             samples += load_memory_logs(logs_dir)
         samples += load_raw_sessions(args.raw)
-        samples += load_ama(Path(args.out).parent if args.out else Path("data"))
+        data_dir = Path(args.out).parent if args.out else Path("data")
+        samples += load_ama(data_dir)
+        samples += load_sources(data_dir)
     if args.lane in ("constellation", "all"):
         samples += load_constellation()
     if args.lane in ("hf", "all"):
