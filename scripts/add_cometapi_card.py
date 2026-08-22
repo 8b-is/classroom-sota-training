@@ -55,6 +55,22 @@ CORE_MODELS = [
     "google-bert/bert-base-uncased",
     "google/electra-base-discriminator",
     "Qwen/Qwen3-0.6B",
+    "FacebookAI/xlm-roberta-base",
+    "KakologArchives/KakologArchives",
+    "Salesforce/wikitext",
+    "k9cli/video-vec2wav2-tokenizer",
+    "banned-historical-archives/banned-historical-archives",
+    "nvidia/PhysicalAI-Robotics-GR00T-X-Embodiment-Sim",
+    "openai/gsm8k",
+    "XiaomiMiMo/MiMo-V2.5-Pro",
+    "Chelsea707/arxiv-cs-2020-2025-pdfs",
+    "Maximilians/ps2_hf1",
+    "apple/DataCompDR-1B",
+    "yethss/The-Quettaset",
+    "anisoleai/fineweb-tokenized",
+    "Posiedon26/safety-redteaming-pool",
+    "NeurIPS-2026-PRISM/PRISM-Dataset",
+    "Mearman/OpenAlex",
 ]
 
 
