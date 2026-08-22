@@ -44,6 +44,7 @@ elders — four Qwen, four DeepSeek, all open-weights, MAX thinking:
 | deepseek-pro | `deepseek-v4-pro` | deepseekPro, MAX thinking |
 | deepseek-r2 | `deepseek-r2` | the newest reasoner |
 | deepseek-r1 | `deepseek-r1-0528` | the R1 lineage |
+| nemotron-lightning | `nemotron-lightning` | the newest NVIDIA open-weights, MAX thinking |
 
 Run the whole council in deliberation order with `--council`:
 ```bash

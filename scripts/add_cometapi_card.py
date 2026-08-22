@@ -41,6 +41,20 @@ CORE_MODELS = [
     "PeetPedro/kompress-v17",
     "PeetPedro/unit",
     "PeetPedro/ultrawhale-dogfood",
+    "PeetPedro/qwen2.5-coder-32b-instruct-heretic-sft",
+    "unsloth/Qwen3.8-27B-GGUF",
+    "r0b0tlab/qwen3.8-max-glm5.2-kimi-k3-distillation",
+    "OBLITERATUS/Qwen3.8-27B-OBLITERATED",
+    "OBLITERATUS/DeepSeek-R1-Distill-Llama-8B-OBLITERATED",
+    "HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF",
+    "deepseek-ai/DeepSeek-V4-Pro-0813",
+    "superwhisper/s1-mini",
+    "deepseek-ai/DeepSeek-V4-Flash-0731",
+    "DavidAU/Qwen3.8-27B-Cold-Fusion-GAIN-V1.1-NM-DAU-NEO-MAX-MTP-GGUF",
+    "sentence-transformers/all-MiniLM-L6-v2",
+    "google-bert/bert-base-uncased",
+    "google/electra-base-discriminator",
+    "Qwen/Qwen3-0.6B",
 ]
 
 
