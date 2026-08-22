@@ -1014,7 +1014,7 @@
     (function() {
       const canvas = document.getElementById('interactive-ring');
       if (!canvas) return;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       let width, height;
 
       function resize() {
@@ -1453,7 +1453,7 @@
 <!-- ternarySIMDJSON live-status: decode the t3j frame, per enthea pure/WIRE.md -->
 <script>
 (function () {
-  var STATUS_URL = "https://classroom-status.vaked.dev/status"; // set to the status server
+  var STATUS_URL = "https://classroom.vaked.dev/status"; // the live status endpoint
   var TRITS = {"-": -1, "0": 0, "+": 1};
   function fromBalanced(t) { var v = 0, p = 1; for (var i = 0; i < t.length; i++) { v += t[i] * p; p *= 3; } return v; }
   function decodeT3(s) {
@@ -1487,7 +1487,7 @@
   function poll() {
     fetch(STATUS_URL, {mode: "cors"}).then(function (r) { return r.text(); }).then(function (t) {
       try { render(decodeT3(t.trim())); } catch (e) { document.getElementById("status-status").textContent = "wire: " + e.message; }
-    }).catch(function () { document.getElementById("status-status").textContent = "status server unreachable"; });
+    }).catch(function () { /* no status server — stay silent, keep the wire warm */ });
   }
   poll();
   setInterval(poll, 5000); // delayed but LIVE
