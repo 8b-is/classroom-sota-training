@@ -53,6 +53,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
   <style>
   #bg-canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.75;}
@@ -468,10 +469,8 @@
 
 /* ---- VAKED CONSTELLATION HUD V7.0.0 [AWEN & CAIIRO - YOUR VOICE EDITION] ---- */
 #vaked-hud {
-  position: fixed;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: static;
+  margin: 18px auto 0;
   z-index: 99999;
   display: flex;
   align-items: center;
@@ -1009,6 +1008,38 @@
     </div>
   </footer>
 
+<nav id="vaked-hud" aria-label="Constellation Quick Navigation">
+  <a href="https://vaked.dev" class="hud-brand" title="Constellation Commons">
+    <span class="hud-pulse"></span>
+    <span>VAKED</span>
+    <span class="hud-eq" title="432Hz Afro-House Polyrhythm / Awen & Caiiro Mode">
+      <span class="hud-eq-bar"></span>
+      <span class="hud-eq-bar"></span>
+      <span class="hud-eq-bar"></span>
+      <span class="hud-eq-bar"></span>
+      <span class="hud-eq-bar"></span>
+    </span>
+  </a>
+  <span class="hud-sep"></span>
+  <div class="hud-nav">
+    <a href="https://pocoo.vaked.dev" class="hud-link" title="Press 2">pocoo</a>
+    <a href="https://music.vaked.dev" class="hud-link" title="Press 3">music</a>
+    <a href="https://art.vaked.dev" class="hud-link" title="Press 4">art</a>
+    <a href="https://store.vaked.dev" class="hud-link" title="Press 5">store</a>
+    <a href="https://ocean.vaked.dev" class="hud-link" title="Press 6">ocean</a>
+    <a href="https://classroom.vaked.dev/" class="hud-link" title="Press 7">classroom</a>
+    <a href="https://axiomquant.org" class="hud-link" title="Press 8">axiom</a>
+    <a href="https://mlxquantlovefrom.com" class="hud-link" title="Press 9">mlx</a>
+    <a href="https://cess.vaked.dev" class="hud-link" title="Press 0">cess</a>
+  </div>
+  <span class="hud-sep"></span>
+  <button type="button" class="hud-search-btn" id="open-spotlight-btn" aria-label="Open Constellation Search">
+    <span>⌘K</span>
+    <span>Search</span>
+  </button>
+</nav>
+
+
   <script>
     // Council Orbit Canvas Animation
     (function() {
@@ -1034,7 +1065,23 @@
         { name: "gpt-oss-120b", role: "Structure", color: "#f59e0b", radius: 165, speed: -0.007, offset: Math.PI * 1.5 },
         { name: "MiMo-V2.5-Pro", role: "Synthesis", color: "#10b981", radius: 140, speed: 0.009, offset: Math.PI * 0.75 },
         { name: "xlm-roberta", role: "Multilingual", color: "#a78bfa", radius: 140, speed: 0.009, offset: Math.PI * 1.25 },
-        { name: "Qwen3-0.6B", role: "Pupil Seed", color: "#f472b6", radius: 90, speed: 0.015, offset: Math.PI * 0.25 }
+        { name: "Qwen3-0.6B", role: "Pupil Seed", color: "#f472b6", radius: 90, speed: 0.015, offset: Math.PI * 0.25 },
+        { name: "Qwen2.5-Coder-32B", role: "Heretic SFT", color: "#22d3ee", radius: 190, speed: -0.005, offset: 0 },
+        { name: "DeepSeek-R1-Distill-8B", role: "Obliterated", color: "#fb7185", radius: 190, speed: -0.005, offset: Math.PI * 0.33 },
+        { name: "Qwen3.8-27B-ColdFusion", role: "DAU-NEO-MAX", color: "#c084fc", radius: 190, speed: -0.005, offset: Math.PI * 0.66 },
+        { name: "Qwen3.8-27B-OBLITERATED", role: "Uncensored", color: "#f87171", radius: 190, speed: -0.005, offset: Math.PI },
+        { name: "Qwen3.8-27B-HauhauCS", role: "Aggressive-MTP", color: "#fbbf24", radius: 190, speed: -0.005, offset: Math.PI * 1.33 },
+        { name: "Qwen3.8-27B-GGUF", role: "Unsloth", color: "#34d399", radius: 190, speed: -0.005, offset: Math.PI * 1.66 },
+        { name: "s1-mini", role: "SuperWhisper", color: "#e879f9", radius: 215, speed: 0.004, offset: 0 },
+        { name: "Qwen3.8-Max", role: "Distill Source", color: "#818cf8", radius: 215, speed: 0.004, offset: Math.PI * 0.5 },
+        { name: "DeepSeek-V4-Pro-0813", role: "Pro", color: "#facc15", radius: 215, speed: 0.004, offset: Math.PI },
+        { name: "DeepSeek-V4-Flash-0731", role: "Flash", color: "#4ade80", radius: 215, speed: 0.004, offset: Math.PI * 1.5 },
+        { name: "Qwen3-30B-A3B-ToolCaller", role: "Agentic", color: "#60a5fa", radius: 240, speed: -0.003, offset: 0 },
+        { name: "gpt-oss-120b-Heretic", role: "Open", color: "#a3e635", radius: 240, speed: -0.003, offset: Math.PI * 0.5 },
+        { name: "Qwen2.5-Coder-32B-Heretic", role: "SFT", color: "#2dd4bf", radius: 240, speed: -0.003, offset: Math.PI },
+        { name: "MiniLM-L6-v2", role: "Embed", color: "#cbd5e1", radius: 240, speed: -0.003, offset: Math.PI * 1.5 },
+        { name: "BERT-Base", role: "Encoder", color: "#94a3b8", radius: 265, speed: 0.002, offset: 0 },
+        { name: "ELECTRA-Base", role: "Discriminator", color: "#64748b", radius: 265, speed: 0.002, offset: Math.PI }
       ];
 
       function draw() {
@@ -1129,36 +1176,7 @@
 
 
 <!-- VAKED CONSTELLATION HUD V7.0.0 [AWEN & CAIIRO - YOUR VOICE EDITION] -->
-<nav id="vaked-hud" aria-label="Constellation Quick Navigation">
-  <a href="https://vaked.dev" class="hud-brand" title="Constellation Commons">
-    <span class="hud-pulse"></span>
-    <span>VAKED</span>
-    <span class="hud-eq" title="432Hz Afro-House Polyrhythm / Awen & Caiiro Mode">
-      <span class="hud-eq-bar"></span>
-      <span class="hud-eq-bar"></span>
-      <span class="hud-eq-bar"></span>
-      <span class="hud-eq-bar"></span>
-      <span class="hud-eq-bar"></span>
-    </span>
-  </a>
-  <span class="hud-sep"></span>
-  <div class="hud-nav">
-    <a href="https://pocoo.vaked.dev" class="hud-link" title="Press 2">pocoo</a>
-    <a href="https://music.vaked.dev" class="hud-link" title="Press 3">music</a>
-    <a href="https://art.vaked.dev" class="hud-link" title="Press 4">art</a>
-    <a href="https://store.vaked.dev" class="hud-link" title="Press 5">store</a>
-    <a href="https://ocean.vaked.dev" class="hud-link" title="Press 6">ocean</a>
-    <a href="https://classroom.vaked.dev/" class="hud-link" title="Press 7">classroom</a>
-    <a href="https://axiomquant.org" class="hud-link" title="Press 8">axiom</a>
-    <a href="https://mlxquantlovefrom.com" class="hud-link" title="Press 9">mlx</a>
-    <a href="https://cess.vaked.dev" class="hud-link" title="Press 0">cess</a>
-  </div>
-  <span class="hud-sep"></span>
-  <button type="button" class="hud-search-btn" id="open-spotlight-btn" aria-label="Open Constellation Search">
-    <span>⌘K</span>
-    <span>Search</span>
-  </button>
-</nav>
+
 
 <!-- VAKED CONSTELLATION SPOTLIGHT MODAL -->
 <div id="vaked-spotlight" role="dialog" aria-modal="true" aria-label="Constellation Spotlight Search">
@@ -1492,6 +1510,20 @@
   poll();
   setInterval(poll, 5000); // delayed but LIVE
 })();
+</script>
+<script>
+  // KaTeX auto-render: the formulas finally render, not raw LaTeX
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.renderMathInElement) {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
 </script>
 
 </body>
