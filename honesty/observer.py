@@ -22,6 +22,8 @@ Usage:
 """
 
 import argparse
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 import os
@@ -41,6 +43,25 @@ def sha256(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()
 
 
+@contextmanager
+def _ledger_lock(*, exclusive: bool):
+    """POSIX advisory lock shared by cooperating CLI and webhook processes.
+
+    A separate stable lock file protects the head-read/append transaction.
+    Do not delete or replace this lock file while any observer is running.
+    """
+    LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = LEDGER.with_name(LEDGER.name + ".lock")
+    flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(lock_path, flags, 0o600)
+    with os.fdopen(fd, "a") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
 def last_hash() -> str:
     if not LEDGER.exists():
         return "0" * 64
@@ -54,35 +75,78 @@ def last_hash() -> str:
     return "0" * 64
 
 
-def ingest(channel: str, text: str, claims: list[str] | None = None) -> dict:
-    prev = last_hash()
-    body = f"{prev}\n{channel}\n{text}"
-    h = sha256(body)
-    entry = {
-        "channel": channel,
-        "text": text,
-        "claims": claims or [],
-        "prev": prev,
-        "hash": h,
-        "t3": wire.encode_json({"channel": channel, "hash": h}) if wire else None,
-    }
-    LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    with open(LEDGER, "a") as f:
-        f.write(json.dumps(entry) + "\n")
-    return entry
+def entry_body(prev, channel, text, delivery_id=None):
+    if delivery_id is None:
+        return f"{prev}\n{channel}\n{text}"
+    return json.dumps(["delivery-v1", prev, channel, text, delivery_id], ensure_ascii=True, separators=(",", ":"))
 
 
-def verify_channel(channel: str) -> dict:
+def ingest(channel: str, text: str, claims: list[str] | None = None, *, delivery_id: str | None = None) -> dict:
+    return ingest_batch(channel, [(text, delivery_id, claims)])[0]
+
+
+def ingest_batch(channel, messages):
+    """Reject delivery conflicts before writing, under one cross-process lock.
+
+    A retry skips already durable rows. This does not promise atomic recovery
+    from a torn filesystem write; malformed ledgers fail closed for inspection.
+    """
+    messages = list(messages)
+    for text, delivery_id, claims in messages:
+        if not isinstance(text, str):
+            raise ValueError("Invalid text")
+        if delivery_id is not None and (not isinstance(delivery_id, str) or not delivery_id or len(delivery_id) > 1024):
+            raise ValueError("Invalid delivery ID")
+    with _ledger_lock(exclusive=True):
+        prior_rows = [json.loads(line) for line in LEDGER.read_text().splitlines() if line.strip()] if LEDGER.exists() else []
+        by_id = {(row["channel"], row["delivery_id"]): row for row in prior_rows if "delivery_id" in row}
+        prev = prior_rows[-1]["hash"] if prior_rows else "0" * 64
+        results, additions = [], []
+        for text, delivery_id, claims in messages:
+            key = (channel, delivery_id)
+            if delivery_id is not None and key in by_id:
+                prior = by_id[key]
+                if prior["text"] != text:
+                    raise ValueError("Delivery ID reused with different text")
+                results.append(prior)
+                continue
+            h = sha256(entry_body(prev, channel, text, delivery_id))
+            entry = {"channel": channel, "text": text, "claims": claims or [],
+                     "prev": prev, "hash": h,
+                     "t3": wire.encode_json({"channel": channel, "hash": h}) if wire else None}
+            if delivery_id is not None:
+                entry["delivery_id"] = delivery_id
+                by_id[key] = entry
+            results.append(entry)
+            additions.append(entry)
+            prev = h
+        if additions:
+            with open(LEDGER, "a") as f:
+                f.write("".join(json.dumps(entry) + "\n" for entry in additions))
+                f.flush()
+                os.fsync(f.fileno())
+        return results
+
+
+def ledger_snapshot() -> list[dict]:
+    """Read a stable snapshot; a ledger with no writes has no entries."""
+    with _ledger_lock(exclusive=False):
+        if not LEDGER.exists():
+            return []
+        return [json.loads(line) for line in LEDGER.read_text().splitlines() if line.strip()]
+
+
+def verify_channel(channel: str | None) -> dict:
     """Walk the GLOBAL chain in order; a break anywhere means a retroactive
     edit. Reports per-channel stats alongside the global verdict."""
-    entries = [json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()]
+    entries = ledger_snapshot()
     prev = "0" * 64
     ok = True
     channel_count = 0
     for e in entries:
         if e["prev"] != prev:
             ok = False
-        body = f"{e['prev']}\n{e['channel']}\n{e['text']}"
+        body = entry_body(e["prev"], e["channel"], e["text"], e.get("delivery_id"))
         if sha256(body) != e["hash"]:
             ok = False
         if e["channel"] == channel:
@@ -114,15 +178,15 @@ def main() -> int:
         if e["t3"]:
             print(f"  t3: {e['t3'][:24]}…")
     elif args.cmd == "verify":
+        r = verify_channel(args.channel)
         if args.channel:
-            r = verify_channel(args.channel)
             print(f"{r['channel']}: {r['entries']} entries — chain {'INTACT' if r['chain_intact'] else 'BROKEN'}")
         else:
-            ok = all(verify_channel(e["channel"])["chain_intact"]
-                     for e in [json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()])
+            ok = r["chain_intact"]
             print(f"whole ledger: chain {'INTACT' if ok else 'BROKEN'}")
+        return 0 if r["chain_intact"] else 1
     elif args.cmd == "ledger":
-        lines = [json.loads(l) for l in LEDGER.read_text().splitlines() if l.strip()]
+        lines = ledger_snapshot()
         for e in lines[-args.last:]:
             print(f"  {e['channel']:<8} {e['hash'][:12]}…  {e['text'][:40]}")
     return 0
