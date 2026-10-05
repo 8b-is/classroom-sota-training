@@ -3,8 +3,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 LEDGER = Path(__file__).parent.parent / "honesty" / "ledger.py"
 
 
@@ -25,6 +23,7 @@ def test_chain_intact_then_broken() -> None:
 
         ok = run(["verify", str(db)])
         assert "chain INTACT" in ok.stdout
+        assert ok.returncode == 0
 
         import sqlite3
 
@@ -35,3 +34,4 @@ def test_chain_intact_then_broken() -> None:
 
         bad = run(["verify", str(db)])
         assert "chain BROKEN" in bad.stdout
+        assert bad.returncode == 1

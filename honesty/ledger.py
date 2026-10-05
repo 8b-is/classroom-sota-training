@@ -151,6 +151,7 @@ def main() -> int:
         r = ledger.verify()
         ledger.close()
         print(f"{r['entries']} entries — chain {'INTACT' if r['chain_intact'] else 'BROKEN'}")
+        return 0 if r["chain_intact"] else 1
     elif args.cmd == "tail":
         ledger = Ledger(args.db)
         for e in ledger.tail(args.last):
